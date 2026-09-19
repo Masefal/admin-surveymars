@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
@@ -8,13 +8,32 @@ export default function GenerateQuiz() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     
+    const [subjects, setSubjects] = useState([]);
+    const [classes, setClasses] = useState([]);
+
     const [formData, setFormData] = useState({
-        mapel: 'Matematika',
-        kelas: 'Kelas IV A',
+        mapel: '',
+        kelas: '',
         topik: 'Bangun Datar',
         deskripsi: 'Latihan mengenal dan memahami bangun datar sederhana.',
         jumlah_soal: 5
     });
+
+    useEffect(() => {
+        axios.get('/api/master-data')
+            .then(response => {
+                setSubjects(response.data.subjects);
+                setClasses(response.data.classes);
+                
+                if (response.data.subjects.length > 0) {
+                    setFormData(prev => ({ ...prev, mapel: response.data.subjects[0].name }));
+                }
+                if (response.data.classes.length > 0) {
+                    setFormData(prev => ({ ...prev, kelas: response.data.classes[0].name }));
+                }
+            })
+            .catch(error => console.error("Gagal mengambil master data:", error));
+    }, []);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -66,11 +85,19 @@ export default function GenerateQuiz() {
                     <div className="space-y-6">
                         <div>
                             <label className="block text-sm font-bold text-gray-900 mb-2">Mata Pelajaran</label>
-                            <input type="text" name="mapel" value={formData.mapel} onChange={handleChange} className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" />
+                            <select name="mapel" value={formData.mapel} onChange={handleChange} className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39] bg-white">
+                                {subjects.map(s => (
+                                    <option key={s.id} value={s.name}>{s.name}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-900 mb-2">Kelas</label>
-                            <input type="text" name="kelas" value={formData.kelas} onChange={handleChange} className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" />
+                            <select name="kelas" value={formData.kelas} onChange={handleChange} className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39] bg-white">
+                                {classes.map(c => (
+                                    <option key={c.id} value={c.name}>{c.name}</option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-900 mb-2">Topik Kuis (Nama Quiz)</label>
@@ -89,7 +116,7 @@ export default function GenerateQuiz() {
                     <div className="space-y-4 mb-8">
                         <div>
                             <div className="text-sm text-gray-400 mb-1">Kelas & Mapel</div>
-                            <div className="font-bold text-gray-900">{formData.kelas} • {formData.mapel}</div>
+                            <div className="font-bold text-gray-900">{formData.kelas || '-'} • {formData.mapel || '-'}</div>
                         </div>
                         <div>
                             <div className="text-sm text-gray-400 mb-1">Jumlah soal yang di-generate</div>
@@ -103,7 +130,7 @@ export default function GenerateQuiz() {
 
                     <button 
                         onClick={handleGenerate} 
-                        disabled={loading}
+                        disabled={loading || !formData.mapel || !formData.kelas}
                         className="w-full bg-[#1b6d39] hover:bg-[#14532b] disabled:bg-gray-400 transition-colors text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2"
                     >
                         {loading ? (

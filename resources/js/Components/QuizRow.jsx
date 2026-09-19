@@ -1,22 +1,26 @@
 import React from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, ChevronRight } from 'lucide-react';
 
-export default function QuizRow({ title, kelas, status, statusBg, statusColor, peserta }) {
+export default function QuizRow({ id, title, kelas, status, statusBg, statusColor, peserta }) {
     return (
-        <div className="grid grid-cols-12 gap-4 items-center p-3.5 hover:bg-gray-50 rounded-xl transition-colors">
-            <div className="col-span-5 font-bold text-gray-900 truncate">{title}</div>
-            <div className="col-span-2 text-gray-500 text-sm">{kelas}</div>
-            <div className="col-span-2">
-                <span className={`px-3 py-1.5 ${statusBg} ${statusColor} text-xs font-bold rounded-full`}>
+        <Link to={`/quiz/${id}`} className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-all border border-transparent hover:border-gray-100 group block">
+            <div>
+                <h4 className="font-bold text-gray-900 group-hover:text-[#1b6d39] transition-colors">{title}</h4>
+                <div className="flex items-center gap-3 text-sm mt-1">
+                    <span className="text-gray-500 font-medium">{kelas}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className="flex items-center gap-1 text-gray-500 font-medium">
+                        <Users size={14} /> {peserta}
+                    </span>
+                </div>
+            </div>
+            <div className="flex items-center gap-4">
+                <div className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${statusBg} ${statusColor}`}>
                     {status}
-                </span>
+                </div>
+                <ChevronRight size={18} className="text-gray-300 group-hover:text-[#1b6d39] transition-colors" />
             </div>
-            <div className="col-span-2 text-gray-500 text-sm">{peserta}</div>
-            <div className="col-span-1 text-right">
-                <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                    <MoreHorizontal size={20} />
-                </button>
-            </div>
-        </div>
+        </Link>
     );
 }

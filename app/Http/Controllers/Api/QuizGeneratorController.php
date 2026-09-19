@@ -25,12 +25,15 @@ class QuizGeneratorController extends Controller
         Topik/Materi: {$request->topik}.
         Konteks Tambahan: {$request->deskripsi}.
         
-        WAJIB buat soal yang mudah dipahami anak-anak.
+        ATURAN TINGKAT KESULITAN & VARIASI (PENTING!):
+        1. Sesuaikan nalar dengan {$request->kelas}. Jika kelas 1-3, gunakan bahasa sangat sederhana. Jika kelas 4-6, gunakan soal nalar/cerita (HOTS) yang menantang.
+        2. DILARANG menggunakan soal yang itu-itu saja. Buat skenario, nama tokoh, atau variasi angka yang kreatif dan acak.
         
         KEMBALIKAN HANYA DALAM FORMAT ARRAY JSON seperti struktur berikut:
         [
             {
-                \"question_text\": \"Teks pertanyaan?\",
+                \"question_text\": \"Teks pertanyaan di sini?\",
+                \"explanation\": \"Penjelasan singkat dan mudah dipahami mengapa jawaban tersebut benar.\",
                 \"options\": [
                     {\"option_text\": \"Pilihan A\", \"is_correct\": true},
                     {\"option_text\": \"Pilihan B\", \"is_correct\": false},

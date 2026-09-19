@@ -1,13 +1,31 @@
-import React from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import AdminLayout from '../Layouts/AdminLayout';
-import { MessageCircle, QrCode, Link as LinkIcon } from 'lucide-react';
+import { MessageCircle, QrCode, Link as LinkIcon, Check } from 'lucide-react';
 
 export default function QuizDibagikan() {
     const location = useLocation();
+    const navigate = useNavigate();
     const { quiz } = location.state || {};
+    const [copied, setCopied] = useState(false);
     
-    const shareUrl = quiz ? `quiz.fithrahinsani.org/q/${quiz.share_code}` : 'quiz.fithrahinsani.org/q/UNKNOWN';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000';
+    const shareUrl = quiz ? `${baseUrl}/q/${quiz.share_code}` : `${baseUrl}/q/UNKNOWN`;
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleWhatsApp = () => {
+        const text = `Yuk kerjakan kuis *${quiz?.title || 'Kuis'}* (${quiz?.subject?.name || 'Mapel'})!\n\nKlik link berikut untuk mulai mengerjakan:\n${shareUrl}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    };
+
+    const handleQR = () => {
+        alert(`Tampilkan QR Code untuk link:\n${shareUrl}`);
+    };
 
     return (
         <AdminLayout>
@@ -15,7 +33,7 @@ export default function QuizDibagikan() {
 
             <div className="flex justify-between items-end mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-1">Quiz Dibagikan</h1>
-                <button className="h-14 w-14 rounded-xl bg-[#1b6d39] text-white flex items-center justify-center font-bold text-2xl shadow-sm hover:ring-4 hover:ring-green-100 transition-all cursor-pointer">
+                <button onClick={() => navigate('/dashboard')} className="h-14 w-14 rounded-xl bg-[#1b6d39] text-white flex items-center justify-center font-bold text-2xl shadow-sm hover:ring-4 hover:ring-green-100 transition-all cursor-pointer">
                     S
                 </button>
             </div>
@@ -38,8 +56,11 @@ export default function QuizDibagikan() {
                         <div className="px-4 text-green-100 flex-1 truncate font-medium tracking-wide">
                             {shareUrl}
                         </div>
-                        <button className="bg-[#F2994A] hover:bg-[#e0893d] transition-colors text-white font-bold py-3 px-8 rounded-xl flex items-center gap-2 shadow-md">
-                            Salin
+                        <button 
+                            onClick={handleCopy}
+                            className="bg-[#F2994A] hover:bg-[#e0893d] transition-colors text-white font-bold py-3 px-8 rounded-xl flex items-center gap-2 shadow-md w-32 justify-center"
+                        >
+                            {copied ? <><Check size={18} /> Disalin</> : 'Salin'}
                         </button>
                     </div>
                 </div>
@@ -63,7 +84,7 @@ export default function QuizDibagikan() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5 hover:shadow-md hover:border-green-200 transition-all cursor-pointer group">
+                <div onClick={handleWhatsApp} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5 hover:shadow-md hover:border-green-200 transition-all cursor-pointer group">
                     <div className="h-14 w-14 rounded-full bg-green-50 flex items-center justify-center text-green-600 group-hover:scale-110 transition-transform">
                         <MessageCircle size={26} strokeWidth={2.5} />
                     </div>
@@ -73,7 +94,7 @@ export default function QuizDibagikan() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5 hover:shadow-md hover:border-orange-200 transition-all cursor-pointer group">
+                <div onClick={handleQR} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5 hover:shadow-md hover:border-orange-200 transition-all cursor-pointer group">
                     <div className="h-14 w-14 rounded-full bg-orange-50 flex items-center justify-center text-[#F2994A] group-hover:scale-110 transition-transform">
                         <QrCode size={26} strokeWidth={2.5} />
                     </div>
@@ -83,7 +104,7 @@ export default function QuizDibagikan() {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group">
+                <div onClick={handleCopy} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-5 hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group">
                     <div className="h-14 w-14 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
                         <LinkIcon size={26} strokeWidth={2.5} />
                     </div>

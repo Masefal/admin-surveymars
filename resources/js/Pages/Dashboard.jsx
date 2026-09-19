@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
-import { Plus, ArrowRight, CheckCircle2, UserPlus, ArrowUpRight, FileText } from 'lucide-react';
+import { Plus, ArrowRight, CheckCircle2 } from 'lucide-react';
 import StatCard from '../Components/StatCard';
 import QuizRow from '../Components/QuizRow';
 import ActivityItem from '../Components/ActivityItem';
@@ -60,7 +60,9 @@ export default function Dashboard() {
             </div>
 
             {loading ? (
-                <div className="text-center py-10 font-bold text-gray-500">Memuat data...</div>
+                <div className="flex justify-center items-center py-20">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1b6d39]"></div>
+                </div>
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -82,9 +84,9 @@ export default function Dashboard() {
                         <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-bold text-gray-900">Quiz terbaru</h3>
-                                <a href="#" className="text-sm font-semibold text-[#1b6d39] flex items-center gap-1 hover:underline">
+                                <Link to="/quizzes" className="text-sm font-semibold text-[#1b6d39] flex items-center gap-1 hover:underline">
                                     Lihat semua <ArrowRight size={16} />
-                                </a>
+                                </Link>
                             </div>
 
                             <div className="space-y-1">
@@ -93,17 +95,18 @@ export default function Dashboard() {
                                     return (
                                         <QuizRow 
                                             key={quiz.id}
+                                            id={quiz.id}
                                             title={quiz.title} 
                                             kelas={quiz.student_class?.name || '-'} 
                                             status={style.label} 
                                             statusBg={style.bg} 
                                             statusColor={style.text} 
-                                            peserta="0 peserta" 
+                                            peserta={`${quiz.student_results_count || 0} peserta`} 
                                         />
                                     );
                                 })}
                                 {recentQuizzes.length === 0 && (
-                                    <div className="text-center py-4 text-gray-500 text-sm">Belum ada quiz yang dibuat.</div>
+                                    <div className="text-center py-8 text-gray-500 text-sm font-medium">Belum ada quiz yang dibuat.</div>
                                 )}
                             </div>
                         </div>
@@ -116,8 +119,8 @@ export default function Dashboard() {
                                     Icon={CheckCircle2} 
                                     iconBg="bg-green-50" 
                                     iconColor="text-green-600" 
-                                    title="Fitur ini akan segera hadir" 
-                                    time="Sistem Notifikasi" 
+                                    title="Sistem Siap Digunakan" 
+                                    time="Hari ini" 
                                 />
                             </div>
                         </div>

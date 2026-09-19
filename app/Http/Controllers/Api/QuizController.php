@@ -13,6 +13,19 @@ use Illuminate\Support\Str;
 
 class QuizController extends Controller
 {
+    public function index(Request $request)
+    {
+        $query = Quiz::with(['subject', 'studentClass'])->withCount('studentResults');
+
+        if ($request->has('search') && $request->search != '') {
+            $query->where('title', 'like', '%' . $request->search . '%');
+        }
+
+        $quizzes = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json($quizzes);
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -22,10 +35,8 @@ class QuizController extends Controller
             'questions' => 'required|array'
         ]);
 
-        $subject = Subject::firstOrCreate(['name' =>$request->quizInfo['mapel']]);
-        
-        $studentClass = StudentClass::firstOrCreate(['name' =>$request->quizInfo['kelas']]);
-
+        $subject = Subject::firstOrCreate(['name' => $request->quizInfo['mapel']]);
+        $studentClass = StudentClass::firstOrCreate(['name' => $request->quizInfo['kelas']]);
         $shareCode = strtoupper(Str::random(5));
 
         $quiz = Quiz::create([
@@ -38,14 +49,16 @@ class QuizController extends Controller
             'time_limit_minutes' => 30
         ]);
 
-        foreach ($request->questions as $q) {$question = Question::create([
+        foreach ($request->questions as $q) {
+            $question = Question::create([
                 'quiz_id' => $quiz->id,
                 'question_text' => $q['question_text'],
+                'explanation' => $q['explanation'] ?? null,
                 'type' => 'multiple_choice',
                 'points' => 10
             ]);
 
-            foreach ($q['options'] as$opt) {
+            foreach ($q['options'] as $opt) {
                 Option::create([
                     'question_id' => $question->id,
                     'option_text' => $opt['option_text'],
@@ -57,5 +70,14 @@ class QuizController extends Controller
         return response()->json([
             'quiz' => $quiz->load('subject', 'studentClass')
         ], 201);
+    }
+
+    public function show($id)
+    {
+        $quiz = Quiz::with(['subject', 'studentClass', 'studentResults' => function($query) {
+            $query->orderBy('created_at', 'desc');
+        }])->findOrFail($id);
+
+        return response()->json($quiz);
     }
 }

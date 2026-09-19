@@ -1,58 +1,70 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BookOpen, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function Login() {
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setTimeout(() => {
+            navigate('/dashboard');
+        }, 1000);
+    };
+
     return (
-        <div className="flex min-h-screen bg-[#FDFBF7]">
-            <div className="hidden w-1/2 bg-[#1b6d39] p-12 text-white lg:flex lg:flex-col lg:justify-center">
-                <div className="mb-8 flex items-center gap-3">
-                    <img 
-                        src="https://fithrahinsani.org/wp-content/uploads/2023/11/Logo-YFIB.png" 
-                        alt="Logo SIT Fithrah Insani" 
-                        className="h-12 w-12 rounded-full bg-white p-1 shadow-sm"
-                    />
-                    <span className="text-xl font-bold tracking-wide">SIT FITHRAH INSANI</span>
-                </div>
-                <h1 className="mb-4 text-4xl font-bold leading-snug">
-                    Membuat kuis jadi lebih mudah untuk orangtua dan menyenangkan untuk anak.
-                </h1>
-                <p className="text-green-100/90 text-lg">
-                    Susun soal dari kisi-kisi, bantu dengan AI, lalu bagikan lewat satu link.
-                </p>
-            </div>
-
-            <div className="flex w-full items-center justify-center p-8 lg:w-1/2">
-                <div className="w-full max-w-md rounded-2xl bg-white p-10 shadow-xl shadow-gray-200/50">
-                    <h2 className="mb-2 text-3xl font-bold text-gray-800">Selamat datang 👋</h2>
-                    <p className="mb-8 text-gray-500">Masuk ke Fithrah Quiz untuk mulai membuat quiz.</p>
-
-                    <form className="space-y-5">
+        <div className="min-h-screen bg-gray-50 flex font-sans">
+            <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
+                <div className="mx-auto w-full max-w-sm lg:w-96">
+                    <div className="flex items-center gap-3 mb-8">
+                        <img src="https://fithrahinsani.org/wp-content/uploads/2023/11/Logo-YFIB.png" alt="Logo" className="h-10 w-10"/>
+                        <h2 className="font-bold text-2xl text-gray-900">Quiz AI</h2>
+                    </div>
+                    
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Selamat Datang</h1>
+                    <p className="text-gray-500 mb-8">Masuk untuk mengelola kuis dan melihat hasil siswa SIT Fithrah Insani.</p>
+                    
+                    <form onSubmit={handleLogin} className="space-y-6">
                         <div>
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">Email</label>
+                            <label className="block text-sm font-bold text-gray-900 mb-2">Email</label>
                             <input 
                                 type="email" 
-                                placeholder="siti@gmail.com" 
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" 
+                                required 
+                                defaultValue="guru@fithrahinsani.org" 
+                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] focus:ring-2 focus:ring-[#1b6d39] focus:border-transparent outline-none transition-all font-medium" 
                             />
                         </div>
                         <div>
-                            <label className="mb-2 block text-sm font-semibold text-gray-700">Password</label>
+                            <label className="block text-sm font-bold text-gray-900 mb-2">Password</label>
                             <input 
                                 type="password" 
-                                placeholder="••••••••" 
-                                className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" 
+                                required 
+                                defaultValue="password" 
+                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] focus:ring-2 focus:ring-[#1b6d39] focus:border-transparent outline-none transition-all font-medium" 
                             />
                         </div>
-                        <div className="text-right">
-                            <a href="#" className="text-sm font-semibold text-[#1b6d39] hover:underline">Lupa password?</a>
-                        </div>
                         <button 
-                            type="button" 
-                            className="w-full rounded-lg bg-[#1b6d39] py-3 text-lg font-semibold text-white transition-colors hover:bg-[#14532b] active:bg-[#0e3b1e]"
+                            type="submit" 
+                            disabled={loading} 
+                            className="w-full bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold rounded-xl py-4 flex justify-center items-center gap-2 transition-all active:scale-[0.98] disabled:bg-gray-400"
                         >
-                            Masuk
+                            {loading ? <Loader2 className="animate-spin" size={20} /> : <>Masuk ke Dashboard <ArrowRight size={20} /></>}
                         </button>
                     </form>
                 </div>
+            </div>
+            
+            <div className="hidden lg:block relative w-0 flex-1 bg-[#1b6d39] overflow-hidden">
+                <div className="absolute inset-0 h-full w-full flex flex-col justify-center items-center text-white p-20 relative z-10">
+                    <BookOpen size={80} className="mb-8 text-green-200" />
+                    <h2 className="text-4xl font-black mb-4 text-center leading-tight">Buat soal lebih cepat,<br/>evaluasi lebih mudah.</h2>
+                    <p className="text-xl text-green-100/80 text-center font-medium max-w-lg">Platform pembuatan kuis otomatis berteknologi AI (Gemini) khusus untuk pendidik SIT Fithrah Insani.</p>
+                </div>
+                
+                <div className="absolute -right-20 -top-20 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl"></div>
+                <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-white opacity-5 rounded-full blur-3xl"></div>
             </div>
         </div>
     );

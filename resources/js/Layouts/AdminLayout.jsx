@@ -2,13 +2,9 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
     LayoutDashboard, 
-    Users, 
     BookOpen, 
-    FileText, 
     Sparkles, 
     Database, 
-    Send, 
-    FlaskConical,
     Settings 
 } from 'lucide-react';
 
@@ -17,13 +13,9 @@ export default function AdminLayout({ children }) {
 
     const menus = [
         { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
-        { name: 'Kelas', icon: <Users size={20} />, path: '/kelas' },
-        { name: 'Mata Pelajaran', icon: <BookOpen size={20} />, path: '/mapel' },
-        { name: 'Kisi-kisi', icon: <FileText size={20} />, path: '/kisi-kisi' },
+        { name: 'Master Data', icon: <Database size={20} />, path: '/master-data' },
         { name: 'Generate Quiz', icon: <Sparkles size={20} />, path: '/generate' },
-        { name: 'Bank Soal', icon: <Database size={20} />, path: '/bank-soal' },
-        { name: 'Quiz Dibagikan', icon: <Send size={20} />, path: '/dibagikan' },
-        { name: 'Hasil Quiz', icon: <FlaskConical size={20} />, path: '/hasil' },
+        { name: 'Bank Soal', icon: <BookOpen size={20} />, path: '/quizzes' }
     ];
 
     return (
@@ -40,7 +32,7 @@ export default function AdminLayout({ children }) {
 
                 <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
                     {menus.map((menu, index) => {
-                        const isActive = location.pathname === menu.path;
+                        const isActive = location.pathname.startsWith(menu.path) || (menu.path === '/generate' && location.pathname.startsWith('/review'));
                         return (
                             <Link 
                                 key={index} 
@@ -60,19 +52,21 @@ export default function AdminLayout({ children }) {
 
                 <div className="p-4 border-t border-gray-100">
                     <div className="text-xs font-semibold text-gray-400 mb-2 px-2">PENGATURAN</div>
-                    <Link to="/pengaturan" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">
+                    <Link to="/pengaturan" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/pengaturan' ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:bg-gray-50'}`}>
                         <Settings size={20} />
                         Pengaturan
                     </Link>
-                    <div className="mt-4 flex items-center gap-3 px-2 cursor-pointer hover:opacity-80 transition-opacity">
-                        <div className="h-10 w-10 rounded-lg bg-[#1b6d39] text-white flex items-center justify-center font-bold text-lg">
-                            S
+                    <Link to="/pengaturan" className="mt-4 flex items-center gap-3 px-2 cursor-pointer hover:opacity-80 transition-opacity block">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-[#1b6d39] text-white flex items-center justify-center font-bold text-lg">
+                                S
+                            </div>
+                            <div>
+                                <div className="text-sm font-bold text-gray-800">Bu Siti</div>
+                                <div className="text-xs text-gray-500">Admin • SDIT Fithrah Insani</div>
+                            </div>
                         </div>
-                        <div>
-                            <div className="text-sm font-bold text-gray-800">Bu Siti</div>
-                            <div className="text-xs text-gray-500">Admin • SDIT Fithrah Insani</div>
-                        </div>
-                    </div>
+                    </Link>
                 </div>
             </aside>
 

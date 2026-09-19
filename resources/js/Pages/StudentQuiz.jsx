@@ -67,7 +67,7 @@ export default function StudentQuiz() {
 
         try {
             await axios.post(`/api/student/quiz/${quizId}/submit`, payload);
-            navigate(`/q/${quizId}/result`, { state: { result: payload, quiz: quiz } });
+            navigate(`/q/${quizId}/result`, { state: { result: payload, quiz: quiz, studentAnswers: answers } });
         } catch (error) {
             alert("Gagal menyimpan hasil. Silakan coba lagi.");
             setIsSubmitting(false);
@@ -85,7 +85,6 @@ export default function StudentQuiz() {
     return (
         <div className="min-h-screen bg-gray-50 flex justify-center font-sans">
             <div className="w-full max-w-md bg-white min-h-screen flex flex-col shadow-sm relative">
-                
                 <header className="px-6 pt-6 pb-4 bg-white sticky top-0 z-20">
                     <div className="flex justify-between items-end mb-3">
                         <h1 className="font-bold text-gray-900 truncate pr-4 text-lg">

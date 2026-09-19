@@ -10,11 +10,10 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $totalQuiz = Quiz::count();
-        
-        $activeQuiz = Quiz::where('status', 'active')->count();
+        $totalQuiz = Quiz::count();$activeQuiz = Quiz::where('status', 'active')->count();
         
         $recentQuizzes = Quiz::with(['subject', 'studentClass'])
+                            ->withCount('studentResults')
                             ->orderBy('created_at', 'desc')
                             ->take(5)
                             ->get();
