@@ -1,8 +1,45 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
 export default function GenerateQuiz() {
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    
+    const [formData, setFormData] = useState({
+        mapel: 'Matematika',
+        kelas: 'Kelas IV A',
+        topik: 'Bangun Datar',
+        deskripsi: 'Latihan mengenal dan memahami bangun datar sederhana.',
+        jumlah_soal: 5
+    });
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleGenerate = async () => {
+        setLoading(true);
+        try {
+            const response = await axios.post('/api/generate-quiz', formData);
+            
+            navigate('/review', { 
+                state: { 
+                    quizInfo: formData,
+                    generatedQuestions: response.data 
+                } 
+            });
+        } catch (error) {
+            console.error("Error lengkap:", error);
+            const errorMsg = error.response?.data?.error || error.message;
+            alert("GAGAL: " + errorMsg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <AdminLayout>
             <div className="mb-2 text-sm font-medium text-gray-400">Generate Quiz / Pengaturan</div>
@@ -19,10 +56,7 @@ export default function GenerateQuiz() {
 
             <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
                 <div className="bg-[#1b6d39] text-white px-6 py-3 rounded-xl font-semibold min-w-max">1 Pengaturan Dasar</div>
-                <div className="bg-white border border-gray-200 text-gray-400 px-6 py-3 rounded-xl font-semibold min-w-max">2 Kisi-kisi & Soal</div>
-                <div className="bg-white border border-gray-200 text-gray-400 px-6 py-3 rounded-xl font-semibold min-w-max">3 Generate AI</div>
-                <div className="bg-white border border-gray-200 text-gray-400 px-6 py-3 rounded-xl font-semibold min-w-max">4 Review</div>
-                <div className="bg-white border border-gray-200 text-gray-400 px-6 py-3 rounded-xl font-semibold min-w-max">5 Publikasi</div>
+                <div className="bg-white border border-gray-200 text-gray-400 px-6 py-3 rounded-xl font-semibold min-w-max">2 AI Generate</div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -31,20 +65,20 @@ export default function GenerateQuiz() {
                     
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-gray-900 mb-2">Nama Quiz</label>
-                            <input type="text" defaultValue="Matematika — Bangun Datar" className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" />
+                            <label className="block text-sm font-bold text-gray-900 mb-2">Mata Pelajaran</label>
+                            <input type="text" name="mapel" value={formData.mapel} onChange={handleChange} className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-900 mb-2">Kelas</label>
-                            <input type="text" defaultValue="Kelas IV A" className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" />
+                            <input type="text" name="kelas" value={formData.kelas} onChange={handleChange} className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-gray-900 mb-2">Mata Pelajaran</label>
-                            <input type="text" defaultValue="Matematika" className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" />
+                            <label className="block text-sm font-bold text-gray-900 mb-2">Topik Kuis (Nama Quiz)</label>
+                            <input type="text" name="topik" value={formData.topik} onChange={handleChange} className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" />
                         </div>
                         <div>
-                            <label className="block text-sm font-bold text-gray-900 mb-2">Deskripsi</label>
-                            <input type="text" defaultValue="Latihan mengenal dan memahami bangun datar." className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" />
+                            <label className="block text-sm font-bold text-gray-900 mb-2">Deskripsi / Konteks untuk AI</label>
+                            <input type="text" name="deskripsi" value={formData.deskripsi} onChange={handleChange} className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39]" />
                         </div>
                     </div>
                 </div>
@@ -54,25 +88,29 @@ export default function GenerateQuiz() {
                     
                     <div className="space-y-4 mb-8">
                         <div>
-                            <div className="text-sm text-gray-400 mb-1">Kelas</div>
-                            <div className="font-bold text-gray-900">IV A</div>
+                            <div className="text-sm text-gray-400 mb-1">Kelas & Mapel</div>
+                            <div className="font-bold text-gray-900">{formData.kelas} • {formData.mapel}</div>
                         </div>
                         <div>
-                            <div className="text-sm text-gray-400 mb-1">Mapel</div>
-                            <div className="font-bold text-gray-900">Matematika</div>
-                        </div>
-                        <div>
-                            <div className="text-sm text-gray-400 mb-1">Kisi-kisi</div>
-                            <div className="font-bold text-gray-900">Belum dipilih</div>
-                        </div>
-                        <div>
-                            <div className="text-sm text-gray-400 mb-1">Jumlah soal</div>
-                            <div className="font-bold text-gray-900">20 soal</div>
+                            <div className="text-sm text-gray-400 mb-1">Jumlah soal yang di-generate</div>
+                            <select name="jumlah_soal" value={formData.jumlah_soal} onChange={handleChange} className="font-bold text-gray-900 bg-gray-50 border border-gray-200 rounded-lg p-2 outline-none">
+                                <option value="5">5 Soal (Cepat)</option>
+                                <option value="10">10 Soal</option>
+                                <option value="20">20 Soal</option>
+                            </select>
                         </div>
                     </div>
 
-                    <button className="w-full bg-[#1b6d39] hover:bg-[#14532b] transition-colors text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2">
-                        Lanjutkan <ArrowRight size={20} />
+                    <button 
+                        onClick={handleGenerate} 
+                        disabled={loading}
+                        className="w-full bg-[#1b6d39] hover:bg-[#14532b] disabled:bg-gray-400 transition-colors text-white font-semibold py-3 px-6 rounded-xl flex items-center justify-center gap-2"
+                    >
+                        {loading ? (
+                            <>Menyusun Soal AI... <Loader2 className="animate-spin" size={20} /></>
+                        ) : (
+                            <>Minta AI Buatkan <ArrowRight size={20} /></>
+                        )}
                     </button>
                 </div>
             </div>

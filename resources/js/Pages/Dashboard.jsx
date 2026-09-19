@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
 import { Plus, ArrowRight, CheckCircle2, UserPlus, ArrowUpRight, FileText } from 'lucide-react';
 import StatCard from '../Components/StatCard';
@@ -7,6 +8,32 @@ import QuizRow from '../Components/QuizRow';
 import ActivityItem from '../Components/ActivityItem';
 
 export default function Dashboard() {
+    const [stats, setStats] = useState({ total_quiz: 0, active_quiz: 0 });
+    const [recentQuizzes, setRecentQuizzes] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        axios.get('/api/dashboard-stats')
+            .then(response => {
+                setStats({
+                    total_quiz: response.data.total_quiz,
+                    active_quiz: response.data.active_quiz
+                });
+                setRecentQuizzes(response.data.recent_quizzes);
+                setLoading(false);
+            })
+            .catch(error => {
+                console.error("Gagal mengambil data:", error);
+                setLoading(false);
+            });
+    }, []);
+
+    const getStatusStyle = (status) => {
+        if (status === 'active') return { bg: 'bg-green-50', text: 'text-green-700', label: 'Aktif' };
+        if (status === 'finished') return { bg: 'bg-orange-50', text: 'text-orange-600', label: 'Selesai' };
+        return { bg: 'bg-gray-100', text: 'text-gray-600', label: 'Draft' };
+    };
+
     return (
         <AdminLayout>
             <div className="mb-2 text-sm font-medium text-gray-400">Beranda / Dashboard</div>
@@ -32,101 +59,71 @@ export default function Dashboard() {
                 </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <StatCard 
-                    title="Total Quiz" 
-                    value="24" 
-                    subtitle="↑ 12% bulan ini" 
-                    subtitleColor="text-[#1b6d39]" 
-                />
-                <StatCard 
-                    title="Quiz Aktif" 
-                    value="8" 
-                    subtitle="3 akan berakhir minggu ini" 
-                    subtitleColor="text-[#F2994A]" 
-                />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-xl font-bold text-gray-900">Quiz terbaru</h3>
-                        <a href="#" className="text-sm font-semibold text-[#1b6d39] flex items-center gap-1 hover:underline">
-                            Lihat semua <ArrowRight size={16} />
-                        </a>
-                    </div>
-
-                    <div className="space-y-1">
-                        <QuizRow 
-                            title="Matematika — Bangun Datar" 
-                            kelas="IV A" 
-                            status="Aktif" 
-                            statusBg="bg-green-50" 
-                            statusColor="text-green-700" 
-                            peserta="24 peserta" 
+            {loading ? (
+                <div className="text-center py-10 font-bold text-gray-500">Memuat data...</div>
+            ) : (
+                <>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <StatCard 
+                            title="Total Quiz" 
+                            value={stats.total_quiz} 
+                            subtitle="Semua kuis dibuat" 
+                            subtitleColor="text-[#1b6d39]" 
                         />
-                        <QuizRow 
-                            title="PAI — Akhlak Terpuji" 
-                            kelas="IV B" 
-                            status="Selesai" 
-                            statusBg="bg-orange-50" 
-                            statusColor="text-orange-600" 
-                            peserta="31 peserta" 
-                        />
-                        <QuizRow 
-                            title="Bahasa Indonesia — Ide Pokok" 
-                            kelas="V A" 
-                            status="Aktif" 
-                            statusBg="bg-green-50" 
-                            statusColor="text-green-700" 
-                            peserta="18 peserta" 
-                        />
-                        <QuizRow 
-                            title="IPA — Sistem Pernapasan" 
-                            kelas="VI A" 
-                            status="Draft" 
-                            statusBg="bg-gray-100" 
-                            statusColor="text-gray-600" 
-                            peserta="—" 
+                        <StatCard 
+                            title="Quiz Aktif" 
+                            value={stats.active_quiz} 
+                            subtitle="Kuis sedang berjalan" 
+                            subtitleColor="text-[#F2994A]" 
                         />
                     </div>
-                </div>
 
-                <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-                    <h3 className="text-xl font-bold text-gray-900 mb-6">Aktivitas terbaru</h3>
-                    
-                    <div className="space-y-6">
-                        <ActivityItem 
-                            Icon={CheckCircle2} 
-                            iconBg="bg-green-50" 
-                            iconColor="text-green-600" 
-                            title="Quiz PAI selesai" 
-                            time="2 menit lalu" 
-                        />
-                        <ActivityItem 
-                            Icon={UserPlus} 
-                            iconBg="bg-orange-50" 
-                            iconColor="text-orange-500" 
-                            title="5 siswa baru mengerjakan" 
-                            time="18 menit lalu" 
-                        />
-                        <ActivityItem 
-                            Icon={ArrowUpRight} 
-                            iconBg="bg-green-50" 
-                            iconColor="text-green-600" 
-                            title="Quiz Matematika dibagikan" 
-                            time="1 jam lalu" 
-                        />
-                        <ActivityItem 
-                            Icon={FileText} 
-                            iconBg="bg-gray-50" 
-                            iconColor="text-gray-400" 
-                            title="Kisi-kisi baru dibuat" 
-                            time="Kemarin" 
-                        />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-xl font-bold text-gray-900">Quiz terbaru</h3>
+                                <a href="#" className="text-sm font-semibold text-[#1b6d39] flex items-center gap-1 hover:underline">
+                                    Lihat semua <ArrowRight size={16} />
+                                </a>
+                            </div>
+
+                            <div className="space-y-1">
+                                {recentQuizzes.map((quiz) => {
+                                    const style = getStatusStyle(quiz.status);
+                                    return (
+                                        <QuizRow 
+                                            key={quiz.id}
+                                            title={quiz.title} 
+                                            kelas={quiz.student_class?.name || '-'} 
+                                            status={style.label} 
+                                            statusBg={style.bg} 
+                                            statusColor={style.text} 
+                                            peserta="0 peserta" 
+                                        />
+                                    );
+                                })}
+                                {recentQuizzes.length === 0 && (
+                                    <div className="text-center py-4 text-gray-500 text-sm">Belum ada quiz yang dibuat.</div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                            <h3 className="text-xl font-bold text-gray-900 mb-6">Aktivitas terbaru</h3>
+                            
+                            <div className="space-y-6">
+                                <ActivityItem 
+                                    Icon={CheckCircle2} 
+                                    iconBg="bg-green-50" 
+                                    iconColor="text-green-600" 
+                                    title="Fitur ini akan segera hadir" 
+                                    time="Sistem Notifikasi" 
+                                />
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </>
+            )}
         </AdminLayout>
     );
 }

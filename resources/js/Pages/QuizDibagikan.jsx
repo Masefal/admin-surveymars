@@ -1,11 +1,17 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import AdminLayout from '../Layouts/AdminLayout';
 import { MessageCircle, QrCode, Link as LinkIcon } from 'lucide-react';
 
 export default function QuizDibagikan() {
+    const location = useLocation();
+    const { quiz } = location.state || {};
+    
+    const shareUrl = quiz ? `quiz.fithrahinsani.org/q/${quiz.share_code}` : 'quiz.fithrahinsani.org/q/UNKNOWN';
+
     return (
         <AdminLayout>
-            <div className="mb-2 text-sm font-medium text-gray-400">Quiz Dibagikan / Matematika</div>
+            <div className="mb-2 text-sm font-medium text-gray-400">Quiz Dibagikan / {quiz?.subject?.name || '-'}</div>
 
             <div className="flex justify-between items-end mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-1">Quiz Dibagikan</h1>
@@ -25,12 +31,12 @@ export default function QuizDibagikan() {
                     <h2 className="text-3xl font-bold mb-3 flex items-center gap-3">
                         Quiz siap dibagikan! 🎉
                     </h2>
-                    <h3 className="text-2xl font-semibold mb-2 text-green-50">Matematika — Bangun Datar</h3>
-                    <p className="text-green-200/90 text-base mb-8 font-medium">Kelas IV A • 20 soal • 30 menit</p>
+                    <h3 className="text-2xl font-semibold mb-2 text-green-50">{quiz?.subject?.name || '-'} — {quiz?.title || '-'}</h3>
+                    <p className="text-green-200/90 text-base mb-8 font-medium">{quiz?.student_class?.name || '-'} • {quiz?.time_limit_minutes || 30} menit</p>
 
                     <div className="flex items-center bg-[#14532b] p-2.5 rounded-2xl border border-[#238b49] shadow-inner max-w-lg">
                         <div className="px-4 text-green-100 flex-1 truncate font-medium tracking-wide">
-                            quiz.fithrahinsani.org/q/8K2X9
+                            {shareUrl}
                         </div>
                         <button className="bg-[#F2994A] hover:bg-[#e0893d] transition-colors text-white font-bold py-3 px-8 rounded-xl flex items-center gap-2 shadow-md">
                             Salin
