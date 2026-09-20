@@ -12,8 +12,11 @@ export default function StudentQuiz() {
     
     const [currentIndex, setCurrentIndex] = useState(0);
     const [answers, setAnswers] = useState({});
-    const [timeRemaining, setTimeRemaining] = useState(quiz?.time_limit_minutes * 60 || 1800);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [startTime] = useState(Date.now());
+
+    const hasTimer = quiz?.time_limit_minutes > 0;
+    const [timeRemaining, setTimeRemaining] = useState(hasTimer ? quiz.time_limit_minutes * 60 : null);
 
     useEffect(() => {
         if (!quiz || !studentName) {
@@ -22,13 +25,15 @@ export default function StudentQuiz() {
     }, [quiz, studentName, navigate, quizId]);
 
     useEffect(() => {
+        if (!hasTimer) return;
+        
         if (timeRemaining <= 0) {
             handleSubmit();
             return;
         }
         const timer = setInterval(() => setTimeRemaining(prev => prev - 1), 1000);
         return () => clearInterval(timer);
-    }, [timeRemaining]);
+    }, [timeRemaining, hasTimer]);
 
     if (!quiz) return null;
 
@@ -55,14 +60,30 @@ export default function StudentQuiz() {
 
         const wrongCount = questions.length - correctCount;
         const finalScore = Math.round((correctCount / questions.length) * 100);
-        const timeSpent = (quiz.time_limit_minutes * 60) - timeRemaining;
+        
+        const timeSpent = hasTimer 
+            ? (quiz.time_limit_minutes * 60) - timeRemaining 
+            : Math.floor((Date.now() - startTime) / 1000);
+
+        const answersData = questions.map(q => {
+            const selectedOptId = answers[q.id];
+            const selectedOpt = q.options.find(o => o.id === selectedOptId);
+            const correctOpt = q.options.find(o => o.is_correct);
+            return {
+                question_text: q.question_text,
+                is_correct: correctOpt && selectedOptId === correctOpt.id,
+                student_answer: selectedOpt ? selectedOpt.option_text : 'Tidak dijawab',
+                correct_answer: correctOpt ? correctOpt.option_text : '-'
+            };
+        });
 
         const payload = {
             student_name: studentName,
             score: finalScore,
             correct_answers: correctCount,
             wrong_answers: wrongCount,
-            time_spent_seconds: timeSpent
+            time_spent_seconds: timeSpent,
+            answers_data: answersData
         };
 
         try {
@@ -87,12 +108,8 @@ export default function StudentQuiz() {
             <div className="w-full max-w-md bg-white min-h-screen flex flex-col shadow-sm relative">
                 <header className="px-6 pt-6 pb-4 bg-white sticky top-0 z-20">
                     <div className="flex justify-between items-end mb-3">
-                        <h1 className="font-bold text-gray-900 truncate pr-4 text-lg">
-                            {quiz.title}
-                        </h1>
-                        <span className="text-[#1b6d39] font-bold text-sm whitespace-nowrap">
-                            {currentIndex + 1} / {questions.length}
-                        </span>
+                        <h1 className="font-bold text-gray-900 truncate pr-4 text-lg">{quiz.title}</h1>
+                        <span className="text-[#1b6d39] font-bold text-sm whitespace-nowrap">{currentIndex + 1} / {questions.length}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                         <div className="bg-[#1b6d39] h-2 rounded-full transition-all duration-300" style={{ width: `${progressPercentage}%` }}></div>
@@ -100,17 +117,17 @@ export default function StudentQuiz() {
                 </header>
 
                 <main className="flex-1 flex flex-col p-6 overflow-y-auto">
-                    <div className="flex justify-end mb-6">
-                        <div className="bg-orange-50 text-[#F2994A] font-bold px-4 py-1.5 rounded-full text-sm border border-orange-100">
-                            {formatTime(timeRemaining)}
-                        </div>
+                    <div className="flex justify-end mb-6 min-h-[32px]">
+                        {hasTimer && (
+                            <div className="bg-orange-50 text-[#F2994A] font-bold px-4 py-1.5 rounded-full text-sm border border-orange-100">
+                                {formatTime(timeRemaining)}
+                            </div>
+                        )}
                     </div>
 
                     <div className="mb-8">
                         <div className="text-sm font-semibold text-gray-400 mb-2">Pertanyaan {currentIndex + 1}</div>
-                        <h2 className="text-xl font-extrabold text-gray-900 leading-snug">
-                            {currentQuestion?.question_text}
-                        </h2>
+                        <h2 className="text-xl font-extrabold text-gray-900 leading-snug">{currentQuestion?.question_text}</h2>
                     </div>
 
                     <div className="space-y-3 mb-8">
@@ -121,9 +138,7 @@ export default function StudentQuiz() {
                                     key={option.id}
                                     onClick={() => handleSelectOption(option.id)}
                                     className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${
-                                        isSelected
-                                            ? 'border-[#1b6d39] bg-green-50/50'
-                                            : 'border-gray-200 bg-white hover:border-gray-300'
+                                        isSelected ? 'border-[#1b6d39] bg-green-50/50' : 'border-gray-200 bg-white hover:border-gray-300'
                                     }`}
                                 >
                                     <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
@@ -132,8 +147,7 @@ export default function StudentQuiz() {
                                         {isSelected && <div className="h-3 w-3 bg-[#1b6d39] rounded-full"></div>}
                                     </div>
                                     <span className="font-semibold text-gray-800 text-left">
-                                        <span className="mr-2">{String.fromCharCode(65 + idx)}.</span> 
-                                        {option.option_text}
+                                        <span className="mr-2">{String.fromCharCode(65 + idx)}.</span> {option.option_text}
                                     </span>
                                 </button>
                             );
@@ -148,7 +162,6 @@ export default function StudentQuiz() {
                         >
                             <ArrowLeft size={20} /> Prev
                         </button>
-                        
                         {isLastQuestion ? (
                             <button 
                                 onClick={handleSubmit}

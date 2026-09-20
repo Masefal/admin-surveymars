@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import AdminLayout from '../Layouts/AdminLayout';
 import { MessageCircle, QrCode, Link as LinkIcon, Check } from 'lucide-react';
 
@@ -9,8 +9,26 @@ export default function QuizDibagikan() {
     const { quiz } = location.state || {};
     const [copied, setCopied] = useState(false);
     
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000';
-    const shareUrl = quiz ? `${baseUrl}/q/${quiz.share_code}` : `${baseUrl}/q/UNKNOWN`;
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userName = user.name || 'Admin';
+    const initial = userName.charAt(0).toUpperCase();
+
+    const shareUrl = quiz ? `${window.location.origin}/q/${quiz.share_code}` : `${window.location.origin}/q/UNKNOWN`;
+
+    const getSubjectImage = (mapel) => {
+        const m = mapel?.toLowerCase() || ''
+        if (m.includes('matematika') || m.includes('mtk')) return 'https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=400&auto=format&fit=crop';
+        if (m.includes('alam') || m.includes('ipa') || m.includes('sains')) return 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=400&auto=format&fit=crop';
+        if (m.includes('sosial') || m.includes('ips') || m.includes('sejarah')) return 'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=400&auto=format&fit=crop';
+        if (m.includes('pancasila') || m.includes('pkn') || m.includes('kewarganegaraan')) return 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?q=80&w=400&auto=format&fit=crop';
+        if (m.includes('bahasa') || m.includes('inggris') || m.includes('indonesia')) return 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=400&auto=format&fit=crop';
+        if (m.includes('agama') || m.includes('pai')) return 'https://images.unsplash.com/photo-1609599006353-e629aaab315d?q=80&w=400&auto=format&fit=crop';
+        if (m.includes('olahraga') || m.includes('pjok') || m.includes('jasmani')) return 'https://images.unsplash.com/photo-1461896836934-ffe1c749214e?q=80&w=400&auto=format&fit=crop';
+        if (m.includes('seni') || m.includes('sbdp') || m.includes('prakarya')) return 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?q=80&w=400&auto=format&fit=crop';
+        
+        let shortName = m.replace('ilmu ', '').replace('pelajaran ', '').replace('mata ', '');
+        return `https://ui-avatars.com/api/?name=${encodeURIComponent(shortName || 'Kuis')}&background=random&color=fff&size=400&font-size=0.33`;
+    };
 
     const handleCopy = () => {
         navigator.clipboard.writeText(shareUrl);
@@ -33,9 +51,9 @@ export default function QuizDibagikan() {
 
             <div className="flex justify-between items-end mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 mb-1">Quiz Dibagikan</h1>
-                <button onClick={() => navigate('/dashboard')} className="h-14 w-14 rounded-xl bg-[#1b6d39] text-white flex items-center justify-center font-bold text-2xl shadow-sm hover:ring-4 hover:ring-green-100 transition-all cursor-pointer">
-                    S
-                </button>
+                <Link to="/pengaturan" className="h-14 w-14 rounded-xl bg-[#1b6d39] text-white flex items-center justify-center font-bold text-2xl shadow-sm hover:ring-4 hover:ring-green-100 transition-all cursor-pointer">
+                    {initial}
+                </Link>
             </div>
 
             <div className="bg-[#1b6d39] rounded-3xl p-10 text-white mb-20 shadow-xl relative mt-4">
@@ -50,7 +68,7 @@ export default function QuizDibagikan() {
                         Quiz siap dibagikan! 🎉
                     </h2>
                     <h3 className="text-2xl font-semibold mb-2 text-green-50">{quiz?.subject?.name || '-'} — {quiz?.title || '-'}</h3>
-                    <p className="text-green-200/90 text-base mb-8 font-medium">{quiz?.student_class?.name || '-'} • {quiz?.time_limit_minutes || 30} menit</p>
+                    <p className="text-green-200/90 text-base mb-8 font-medium">{quiz?.student_class?.name || '-'} {quiz?.time_limit_minutes > 0 ? `• ${quiz.time_limit_minutes} menit` : '• Tanpa Batas Waktu'}</p>
 
                     <div className="flex items-center bg-[#14532b] p-2.5 rounded-2xl border border-[#238b49] shadow-inner max-w-lg">
                         <div className="px-4 text-green-100 flex-1 truncate font-medium tracking-wide">
@@ -69,8 +87,8 @@ export default function QuizDibagikan() {
                     <div className="h-44 w-44 bg-white rounded-2xl shadow-2xl p-2">
                         <div className="w-full h-full bg-gray-200 rounded-xl overflow-hidden relative">
                             <img 
-                                src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?q=80&w=400&auto=format&fit=crop" 
-                                alt="Foto Kelas" 
+                                src={getSubjectImage(quiz?.subject?.name)} 
+                                alt="Ilustrasi Mapel" 
                                 className="w-full h-full object-cover"
                             />
                         </div>

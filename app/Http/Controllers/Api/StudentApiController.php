@@ -23,7 +23,7 @@ class StudentApiController extends Controller
         return response()->json($quiz);
     }
 
-    public function submitResult(Request $request, $share_code)
+    public function submitResult(Request $request,$share_code)
     {
         $request->validate([
             'student_name' => 'required|string',
@@ -31,9 +31,10 @@ class StudentApiController extends Controller
             'correct_answers' => 'required|integer',
             'wrong_answers' => 'required|integer',
             'time_spent_seconds' => 'required|integer',
+            'answers_data' => 'nullable|array'
         ]);
 
-        $quiz = Quiz::where('share_code', $share_code)->firstOrFail();
+        $quiz = Quiz::where('share_code',$share_code)->firstOrFail();
 
         $result = StudentResult::create([
             'quiz_id' => $quiz->id,
@@ -42,6 +43,7 @@ class StudentApiController extends Controller
             'correct_answers' => $request->correct_answers,
             'wrong_answers' => $request->wrong_answers,
             'time_spent_seconds' => $request->time_spent_seconds,
+            'answers_data' => json_encode($request->answers_data),
         ]);
 
         return response()->json(['message' => 'Berhasil disimpan', 'result' => $result], 201);

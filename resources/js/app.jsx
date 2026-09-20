@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import axios from 'axios';
 import Login from './Pages/Login';
 import Dashboard from './Pages/Dashboard';
 import QuizList from './Pages/QuizList';
@@ -13,6 +14,14 @@ import StudentLanding from './Pages/StudentLanding';
 import StudentQuiz from './Pages/StudentQuiz';
 import StudentResult from './Pages/StudentResult';
 import Pengaturan from './Pages/Pengaturan';
+
+axios.interceptors.request.use(config => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
 
 function App() {
     return (

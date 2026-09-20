@@ -12,6 +12,10 @@ export default function Dashboard() {
     const [recentQuizzes, setRecentQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userName = user.name || 'Admin';
+    const initial = userName.charAt(0).toUpperCase();
+
     useEffect(() => {
         axios.get('/api/dashboard-stats')
             .then(response => {
@@ -23,7 +27,7 @@ export default function Dashboard() {
                 setLoading(false);
             })
             .catch(error => {
-                console.error("Gagal mengambil data:", error);
+                console.error(error);
                 setLoading(false);
             });
     }, []);
@@ -40,12 +44,12 @@ export default function Dashboard() {
             
             <div className="flex justify-between items-end mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-1">Selamat datang, Bu Siti 👋</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-1">Selamat datang, {userName} 👋</h1>
                     <p className="text-gray-500">Kelola quiz, pantau hasil belajar, dan buat soal lebih cepat.</p>
                 </div>
-                <button className="h-14 w-14 rounded-xl bg-[#1b6d39] text-white flex items-center justify-center font-bold text-2xl shadow-sm hover:ring-4 hover:ring-green-100 transition-all cursor-pointer">
-                    S
-                </button>
+                <Link to="/pengaturan" className="h-14 w-14 rounded-xl bg-[#1b6d39] text-white flex items-center justify-center font-bold text-2xl shadow-sm hover:ring-4 hover:ring-green-100 transition-all cursor-pointer">
+                    {initial}
+                </Link>
             </div>
 
             <div className="bg-[#1b6d39] rounded-2xl p-8 flex justify-between items-center text-white mb-8 shadow-lg">
@@ -54,8 +58,7 @@ export default function Dashboard() {
                     <p className="text-green-100">Gunakan kisi-kisi dan bantuan AI untuk menyusun soal.</p>
                 </div>
                 <Link to="/generate" className="bg-[#F2994A] hover:bg-[#e0893d] transition-colors text-white font-semibold py-3 px-6 rounded-lg flex items-center gap-2">
-                    <Plus size={20} />
-                    Buat Quiz
+                    <Plus size={20} /> Buat Quiz
                 </Link>
             </div>
 
@@ -66,18 +69,8 @@ export default function Dashboard() {
             ) : (
                 <>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <StatCard 
-                            title="Total Quiz" 
-                            value={stats.total_quiz} 
-                            subtitle="Semua kuis dibuat" 
-                            subtitleColor="text-[#1b6d39]" 
-                        />
-                        <StatCard 
-                            title="Quiz Aktif" 
-                            value={stats.active_quiz} 
-                            subtitle="Kuis sedang berjalan" 
-                            subtitleColor="text-[#F2994A]" 
-                        />
+                        <StatCard title="Total Quiz" value={stats.total_quiz} subtitle="Semua kuis dibuat" subtitleColor="text-[#1b6d39]" />
+                        <StatCard title="Quiz Aktif" value={stats.active_quiz} subtitle="Kuis sedang berjalan" subtitleColor="text-[#F2994A]" />
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -93,35 +86,17 @@ export default function Dashboard() {
                                 {recentQuizzes.map((quiz) => {
                                     const style = getStatusStyle(quiz.status);
                                     return (
-                                        <QuizRow 
-                                            key={quiz.id}
-                                            id={quiz.id}
-                                            title={quiz.title} 
-                                            kelas={quiz.student_class?.name || '-'} 
-                                            status={style.label} 
-                                            statusBg={style.bg} 
-                                            statusColor={style.text} 
-                                            peserta={`${quiz.student_results_count || 0} peserta`} 
-                                        />
+                                        <QuizRow key={quiz.id} id={quiz.id} title={quiz.title} kelas={quiz.student_class?.name || '-'} status={style.label} statusBg={style.bg} statusColor={style.text} peserta={`${quiz.student_results_count || 0} peserta`} />
                                     );
                                 })}
-                                {recentQuizzes.length === 0 && (
-                                    <div className="text-center py-8 text-gray-500 text-sm font-medium">Belum ada quiz yang dibuat.</div>
-                                )}
+                                {recentQuizzes.length === 0 && <div className="text-center py-8 text-gray-500 text-sm font-medium">Belum ada quiz yang dibuat.</div>}
                             </div>
                         </div>
 
                         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
                             <h3 className="text-xl font-bold text-gray-900 mb-6">Aktivitas terbaru</h3>
-                            
                             <div className="space-y-6">
-                                <ActivityItem 
-                                    Icon={CheckCircle2} 
-                                    iconBg="bg-green-50" 
-                                    iconColor="text-green-600" 
-                                    title="Sistem Siap Digunakan" 
-                                    time="Hari ini" 
-                                />
+                                <ActivityItem Icon={CheckCircle2} iconBg="bg-green-50" iconColor="text-green-600" title="Sistem Siap Digunakan" time="Hari ini" />
                             </div>
                         </div>
                     </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
 import { Sparkles, ArrowRight, Edit3, Trash2, Check, X } from 'lucide-react';
@@ -8,6 +8,10 @@ export default function ReviewSoal() {
     const location = useLocation();
     const navigate = useNavigate();
     const [isPublishing, setIsPublishing] = useState(false);
+
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userName = user.name || 'Admin';
+    const initial = userName.charAt(0).toUpperCase();
 
     const { quizInfo, generatedQuestions: initialQuestions } = location.state || {};
     const [questions, setQuestions] = useState(initialQuestions || []);
@@ -81,6 +85,9 @@ export default function ReviewSoal() {
                     <h1 className="text-3xl font-bold text-gray-900 mb-1">Review hasil generate AI</h1>
                     <p className="text-gray-500">Periksa soal sebelum kuis dipublikasikan untuk {quizInfo.kelas}.</p>
                 </div>
+                <Link to="/pengaturan" className="h-14 w-14 rounded-xl bg-[#1b6d39] text-white flex items-center justify-center font-bold text-2xl shadow-sm hover:ring-4 hover:ring-green-100 transition-all cursor-pointer">
+                    {initial}
+                </Link>
             </div>
 
             <div className="flex justify-between items-center mb-6">
@@ -110,7 +117,7 @@ export default function ReviewSoal() {
                                     <textarea 
                                         value={editForm.question_text}
                                         onChange={(e) => setEditForm({...editForm, question_text: e.target.value})}
-                                        className="w-full rounded-xl border border-gray-300 p-3 focus:border-[#1b6d39] focus:ring-2 focus:ring-[#1b6d39] focus:border-transparent outline-none transition-all font-medium text-gray-900"
+                                        className="w-full rounded-xl border border-gray-300 p-3 focus:border-[#1b6d39] focus:ring-2 focus:ring-[#1b6d39] outline-none transition-all font-medium text-gray-900"
                                         rows="3"
                                     />
                                 </div>
@@ -124,10 +131,7 @@ export default function ReviewSoal() {
                                                 name={`correct_opt_${index}`}
                                                 checked={opt.is_correct}
                                                 onChange={() => {
-                                                    const newOptions = editForm.options.map((o, idx) => ({
-                                                        ...o,
-                                                        is_correct: idx === i
-                                                    }));
+                                                    const newOptions = editForm.options.map((o, idx) => ({ ...o, is_correct: idx === i }));
                                                     setEditForm({...editForm, options: newOptions});
                                                 }}
                                                 className="w-5 h-5 text-[#1b6d39] focus:ring-[#1b6d39] cursor-pointer"
@@ -152,25 +156,15 @@ export default function ReviewSoal() {
                                     <textarea 
                                         value={editForm.explanation || ''}
                                         onChange={(e) => setEditForm({...editForm, explanation: e.target.value})}
-                                        className="w-full rounded-xl border border-gray-300 p-3 focus:border-[#1b6d39] focus:ring-2 focus:ring-[#1b6d39] focus:border-transparent outline-none transition-all text-sm text-gray-700"
+                                        className="w-full rounded-xl border border-gray-300 p-3 focus:border-[#1b6d39] focus:ring-2 focus:ring-[#1b6d39] outline-none transition-all text-sm text-gray-700"
                                         rows="2"
                                         placeholder="Tambahkan penjelasan mengapa jawaban tersebut benar..."
                                     />
                                 </div>
 
                                 <div className="flex justify-end gap-3 pt-4 border-t border-green-100">
-                                    <button 
-                                        onClick={handleCancelEdit}
-                                        className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 flex items-center gap-2 transition-colors"
-                                    >
-                                        <X size={18} /> Batal
-                                    </button>
-                                    <button 
-                                        onClick={handleSaveEdit}
-                                        className="px-5 py-2.5 rounded-xl bg-[#1b6d39] text-white font-bold hover:bg-[#14532b] flex items-center gap-2 transition-colors shadow-sm"
-                                    >
-                                        <Check size={18} /> Simpan Perubahan
-                                    </button>
+                                    <button onClick={handleCancelEdit} className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 flex items-center gap-2 transition-colors"><X size={18} /> Batal</button>
+                                    <button onClick={handleSaveEdit} className="px-5 py-2.5 rounded-xl bg-[#1b6d39] text-white font-bold hover:bg-[#14532b] flex items-center gap-2 transition-colors shadow-sm"><Check size={18} /> Simpan Perubahan</button>
                                 </div>
                             </div>
                         );
@@ -186,18 +180,9 @@ export default function ReviewSoal() {
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-600 mb-4">
                                 {soal.options.map((opt, i) => (
-                                    <div key={i} className={`p-4 rounded-xl border-2 flex items-center justify-between ${
-                                        opt.is_correct 
-                                        ? 'border-[#1b6d39] bg-green-50 text-green-800 font-bold' 
-                                        : 'border-gray-100 bg-gray-50 font-medium'
-                                    }`}>
-                                        <span>
-                                            <span className="mr-2">{String.fromCharCode(65 + i)}.</span> 
-                                            {opt.option_text}
-                                        </span>
-                                        {opt.is_correct && (
-                                            <span className="bg-[#1b6d39] text-white text-[10px] uppercase tracking-wider px-2 py-1 rounded-md">Kunci</span>
-                                        )}
+                                    <div key={i} className={`p-4 rounded-xl border-2 flex items-center justify-between ${opt.is_correct ? 'border-[#1b6d39] bg-green-50 text-green-800 font-bold' : 'border-gray-100 bg-gray-50 font-medium'}`}>
+                                        <span><span className="mr-2">{String.fromCharCode(65 + i)}.</span> {opt.option_text}</span>
+                                        {opt.is_correct && <span className="bg-[#1b6d39] text-white text-[10px] uppercase tracking-wider px-2 py-1 rounded-md">Kunci</span>}
                                     </div>
                                 ))}
                             </div>
@@ -211,12 +196,8 @@ export default function ReviewSoal() {
                             
                             <div className="flex justify-end items-center border-t border-gray-50 pt-4 mt-2">
                                 <div className="flex gap-4 text-sm font-semibold">
-                                    <button onClick={() => handleStartEdit(index)} className="flex items-center gap-1.5 text-gray-500 hover:text-[#1b6d39] transition-colors">
-                                        <Edit3 size={16} /> Edit Soal
-                                    </button>
-                                    <button onClick={() => handleDeleteSoal(index)} className="flex items-center gap-1.5 text-gray-500 hover:text-red-500 transition-colors">
-                                        <Trash2 size={16} /> Hapus
-                                    </button>
+                                    <button onClick={() => handleStartEdit(index)} className="flex items-center gap-1.5 text-gray-500 hover:text-[#1b6d39] transition-colors"><Edit3 size={16} /> Edit Soal</button>
+                                    <button onClick={() => handleDeleteSoal(index)} className="flex items-center gap-1.5 text-gray-500 hover:text-red-500 transition-colors"><Trash2 size={16} /> Hapus</button>
                                 </div>
                             </div>
                         </div>
@@ -229,14 +210,8 @@ export default function ReviewSoal() {
                     <strong className="text-gray-900">{questions.length}</strong> soal siap dipublikasikan
                 </div>
                 <div className="flex gap-4">
-                    <button onClick={() => navigate('/generate')} className="px-6 py-2.5 rounded-xl border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 transition-colors">
-                        Batal
-                    </button>
-                    <button 
-                        onClick={handlePublish}
-                        disabled={isPublishing || editingIndex !== null}
-                        className="px-8 py-2.5 rounded-xl bg-[#1b6d39] text-white font-bold hover:bg-[#14532b] transition-colors flex items-center gap-2 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:shadow-none transform active:scale-95"
-                    >
+                    <button onClick={() => navigate('/generate')} className="px-6 py-2.5 rounded-xl border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 transition-colors">Batal</button>
+                    <button onClick={handlePublish} disabled={isPublishing || editingIndex !== null} className="px-8 py-2.5 rounded-xl bg-[#1b6d39] text-white font-bold hover:bg-[#14532b] transition-colors flex items-center gap-2 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:shadow-none transform active:scale-95">
                         {isPublishing ? 'Menyimpan...' : 'Publikasikan Sekarang'} <ArrowRight size={18} />
                     </button>
                 </div>
