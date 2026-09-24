@@ -88,6 +88,7 @@ export default function StudentQuiz() {
 
         try {
             await axios.post(`/api/student/quiz/${quizId}/submit`, payload);
+            sessionStorage.setItem(`quiz_result_${quizId}`, JSON.stringify({ result: payload, quiz: quiz, studentAnswers: answers }));
             navigate(`/q/${quizId}/result`, { state: { result: payload, quiz: quiz, studentAnswers: answers } });
         } catch (error) {
             alert("Gagal menyimpan hasil. Silakan coba lagi.");

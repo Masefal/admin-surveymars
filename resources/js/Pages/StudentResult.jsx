@@ -1,20 +1,24 @@
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Trophy, CheckCircle2, XCircle, Clock, Home } from 'lucide-react';
+import { useLocation, useParams } from 'react-router-dom';
+import { Trophy, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 export default function StudentResult() {
     const location = useLocation();
-    const navigate = useNavigate();
+    const { quizId } = useParams();
     
-    const { result, quiz, studentAnswers } = location.state || {};
+    const savedData = !location.state && quizId ? JSON.parse(sessionStorage.getItem(`quiz_result_${quizId}`) || 'null') : null;
+    const { result, quiz, studentAnswers } = location.state || savedData || {};
 
     if (!result || !quiz) {
         return (
-            <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center font-sans p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Data tidak ditemukan</h2>
-                <button onClick={() => navigate('/')} className="mt-4 bg-[#1b6d39] text-white px-6 py-2 rounded-xl">
-                    Kembali ke Beranda
-                </button>
+            <div className="min-h-screen bg-gray-100 flex flex-col justify-center items-center font-sans p-6 text-center">
+                <div className="bg-white p-8 rounded-2xl shadow-sm max-w-sm w-full">
+                    <div className="text-4xl mb-4">📋</div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Hasil Kuis</h2>
+                    <p className="text-gray-500 text-sm">
+                        Tidak ada data hasil kuis yang tersedia.
+                    </p>
+                </div>
             </div>
         );
     }
@@ -98,13 +102,11 @@ export default function StudentResult() {
                         </div>
                     </div>
 
-                    <div className="mt-auto w-full pt-6 border-t border-gray-50">
-                        <button 
-                            onClick={() => window.location.href = '/'}
-                            className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 font-bold rounded-xl py-4 flex justify-center items-center gap-2 transition-all active:scale-[0.98]"
-                        >
-                            <Home size={20} /> Kembali ke Awal
-                        </button>
+                    <div className="mt-auto w-full pt-6 pb-2 border-t border-gray-100 text-center">
+                        <div className="inline-flex items-center gap-2 text-xs font-semibold text-gray-400 bg-gray-50 px-4 py-2 rounded-full border border-gray-100">
+                            <CheckCircle2 size={14} className="text-[#1b6d39]" />
+                            Kuis telah selesai dikerjakan & dinilai
+                        </div>
                     </div>
                 </main>
             </div>
