@@ -107,76 +107,76 @@ export default function StudentQuiz() {
     return (
         <div className="min-h-screen bg-gray-50 flex justify-center font-sans">
             <div className="w-full max-w-md bg-white min-h-screen flex flex-col shadow-sm relative">
-                <header className="px-6 pt-6 pb-4 bg-white sticky top-0 z-20">
-                    <div className="flex justify-between items-end mb-3">
-                        <h1 className="font-bold text-gray-900 truncate pr-4 text-lg">{quiz.title}</h1>
-                        <span className="text-[#1b6d39] font-bold text-sm whitespace-nowrap">{currentIndex + 1} / {questions.length}</span>
+                <header className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 bg-white sticky top-0 z-20 border-b border-gray-50">
+                    <div className="flex justify-between items-end mb-2.5">
+                        <h1 className="font-bold text-gray-900 truncate pr-3 text-base sm:text-lg">{quiz.title}</h1>
+                        <span className="text-[#1b6d39] font-bold text-xs sm:text-sm whitespace-nowrap">{currentIndex + 1} / {questions.length}</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-[#1b6d39] h-2 rounded-full transition-all duration-300" style={{ width: `${progressPercentage}%` }}></div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                        <div className="bg-[#1b6d39] h-1.5 sm:h-2 rounded-full transition-all duration-300" style={{ width: `${progressPercentage}%` }}></div>
                     </div>
                 </header>
 
-                <main className="flex-1 flex flex-col p-6 overflow-y-auto">
-                    <div className="flex justify-end mb-6 min-h-[32px]">
+                <main className="flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto">
+                    <div className="flex justify-end mb-4 min-h-[30px]">
                         {hasTimer && (
-                            <div className="bg-orange-50 text-[#F2994A] font-bold px-4 py-1.5 rounded-full text-sm border border-orange-100">
+                            <div className="bg-orange-50 text-[#F2994A] font-bold px-3.5 py-1 rounded-full text-xs sm:text-sm border border-orange-100">
                                 {formatTime(timeRemaining)}
                             </div>
                         )}
                     </div>
 
-                    <div className="mb-8">
-                        <div className="text-sm font-semibold text-gray-400 mb-2">Pertanyaan {currentIndex + 1}</div>
-                        <h2 className="text-xl font-extrabold text-gray-900 leading-snug">{currentQuestion?.question_text}</h2>
+                    <div className="mb-6 sm:mb-8">
+                        <div className="text-xs sm:text-sm font-semibold text-gray-400 mb-1.5">Pertanyaan {currentIndex + 1}</div>
+                        <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 leading-snug">{currentQuestion?.question_text}</h2>
                     </div>
 
-                    <div className="space-y-3 mb-8">
+                    <div className="space-y-2.5 sm:space-y-3 mb-6 sm:mb-8">
                         {currentQuestion?.options.map((option, idx) => {
                             const isSelected = answers[currentQuestion.id] === option.id;
                             return (
                                 <button
                                     key={option.id}
                                     onClick={() => handleSelectOption(option.id)}
-                                    className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${
+                                    className={`w-full flex items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl border-2 transition-all text-left ${
                                         isSelected ? 'border-[#1b6d39] bg-green-50/50' : 'border-gray-200 bg-white hover:border-gray-300'
                                     }`}
                                 >
-                                    <div className={`h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                    <div className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
                                         isSelected ? 'border-[#1b6d39]' : 'border-gray-300'
                                     }`}>
-                                        {isSelected && <div className="h-3 w-3 bg-[#1b6d39] rounded-full"></div>}
+                                        {isSelected && <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 bg-[#1b6d39] rounded-full"></div>}
                                     </div>
-                                    <span className="font-semibold text-gray-800 text-left">
-                                        <span className="mr-2">{String.fromCharCode(65 + idx)}.</span> {option.option_text}
+                                    <span className="font-semibold text-gray-800 text-xs sm:text-sm">
+                                        <span className="mr-1.5 sm:mr-2 font-bold">{String.fromCharCode(65 + idx)}.</span> {option.option_text}
                                     </span>
                                 </button>
                             );
                         })}
                     </div>
 
-                    <div className="mt-auto pt-6 flex gap-4">
+                    <div className="mt-auto pt-4 sm:pt-6 flex gap-3 sm:gap-4 border-t border-gray-50">
                         <button 
                             onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
                             disabled={currentIndex === 0}
-                            className="flex-1 bg-white border-2 border-gray-200 disabled:opacity-50 hover:bg-gray-50 text-gray-700 font-bold rounded-xl py-4 flex justify-center items-center gap-2 transition-all"
+                            className="flex-1 bg-white border-2 border-gray-200 disabled:opacity-40 hover:bg-gray-50 text-gray-700 font-bold rounded-xl py-3 sm:py-3.5 flex justify-center items-center gap-1.5 transition-all text-xs sm:text-sm"
                         >
-                            <ArrowLeft size={20} /> Prev
+                            <ArrowLeft size={18} /> Prev
                         </button>
                         {isLastQuestion ? (
                             <button 
                                 onClick={handleSubmit}
                                 disabled={isSubmitting}
-                                className="flex-[2] bg-[#F2994A] hover:bg-[#e0893d] disabled:bg-gray-400 text-white font-bold rounded-xl py-4 flex justify-center items-center gap-2 transition-all"
+                                className="flex-[2] bg-[#F2994A] hover:bg-[#e0893d] disabled:bg-gray-400 text-white font-bold rounded-xl py-3 sm:py-3.5 flex justify-center items-center gap-1.5 transition-all text-xs sm:text-sm shadow-sm"
                             >
-                                {isSubmitting ? 'Menyimpan...' : 'Kumpulkan'} <CheckCircle2 size={20} />
+                                {isSubmitting ? 'Menyimpan...' : 'Kumpulkan'} <CheckCircle2 size={18} />
                             </button>
                         ) : (
                             <button 
                                 onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                                className="flex-[2] bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold rounded-xl py-4 flex justify-center items-center gap-2 transition-all"
+                                className="flex-[2] bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold rounded-xl py-3 sm:py-3.5 flex justify-center items-center gap-1.5 transition-all text-xs sm:text-sm shadow-sm"
                             >
-                                Next <ArrowRight size={20} />
+                                Next <ArrowRight size={18} />
                             </button>
                         )}
                     </div>

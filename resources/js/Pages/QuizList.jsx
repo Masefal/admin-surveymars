@@ -47,31 +47,32 @@ export default function QuizList() {
 
     return (
         <AdminLayout>
-            <div className="mb-2 text-sm font-medium text-gray-400">Beranda / Bank Soal</div>
+            <div className="mb-2 text-xs sm:text-sm font-medium text-gray-400">Beranda / Bank Soal</div>
             
-            <div className="flex justify-between items-end mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6 sm:mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-1">Daftar Kuis</h1>
-                    <p className="text-gray-500">Kelola semua kuis yang telah Anda buat.</p>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1">Daftar Kuis</h1>
+                    <p className="text-sm sm:text-base text-gray-500">Kelola semua kuis yang telah Anda buat.</p>
                 </div>
-                <Link to="/generate" className="bg-[#1b6d39] hover:bg-[#14532b] transition-colors text-white font-bold py-3 px-6 rounded-xl flex items-center gap-2 shadow-sm">
+                <Link to="/generate" className="w-full sm:w-auto bg-[#1b6d39] hover:bg-[#14532b] transition-colors text-white font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-sm shrink-0">
                     <Plus size={20} /> Buat Kuis Baru
                 </Link>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm min-h-[60vh]">
-                <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                    <div className="flex gap-2 w-full md:w-auto">
+            <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 shadow-sm min-h-[60vh]">
+                <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center mb-6 gap-4">
+                    <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0">
                         {['Semua', 'Aktif', 'Selesai'].map(tab => (
-                            <span 
+                            <button 
                                 key={tab} 
+                                type="button"
                                 onClick={() => setFilterStatus(tab)}
-                                className={`px-4 py-2 font-semibold text-sm rounded-lg cursor-pointer transition-colors ${
-                                    filterStatus === tab ? 'bg-[#1b6d39] text-white' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
+                                className={`px-4 py-2 font-semibold text-xs sm:text-sm rounded-xl cursor-pointer transition-colors shrink-0 ${
+                                    filterStatus === tab ? 'bg-[#1b6d39] text-white shadow-xs' : 'bg-gray-50 text-gray-500 border border-gray-200 hover:bg-gray-100'
                                 }`}
                             >
                                 {tab}
-                            </span>
+                            </button>
                         ))}
                     </div>
 
@@ -81,7 +82,7 @@ export default function QuizList() {
                             placeholder="Cari nama kuis..." 
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 focus:bg-white focus:border-[#1b6d39] focus:ring-1 focus:ring-[#1b6d39] outline-none transition-all text-sm font-medium"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 focus:bg-white focus:border-[#1b6d39] focus:ring-1 focus:ring-[#1b6d39] outline-none transition-all text-xs sm:text-sm font-medium"
                         />
                         <Search size={18} className="absolute left-3.5 top-3 text-gray-400" />
                         <button type="submit" className="hidden"></button>
