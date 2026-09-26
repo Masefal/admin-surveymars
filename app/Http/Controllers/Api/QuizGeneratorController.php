@@ -47,7 +47,7 @@ class QuizGeneratorController extends Controller
         ]";
 
         $apiKey = config('services.gemini.api_key');
-        $model = config('services.gemini.model', 'gemini-1.5-flash');
+        $model = config('services.gemini.model', 'gemini-3.5-flash-lite');
 
         if (! $apiKey) {
             return response()->json([
