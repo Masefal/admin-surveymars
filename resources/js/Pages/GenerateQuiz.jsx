@@ -89,7 +89,14 @@ export default function GenerateQuiz() {
                         </div>
                         <div>
                             <label className="block text-xs sm:text-sm font-bold text-gray-900 mb-2">Deskripsi / Konteks untuk AI</label>
-                            <input type="text" name="deskripsi" value={formData.deskripsi} onChange={handleChange} placeholder="Konteks soal (opsional)" className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39] text-sm" />
+                            <textarea 
+                                name="deskripsi" 
+                                value={formData.deskripsi} 
+                                onChange={handleChange} 
+                                placeholder="Tuliskan konteks spesifik untuk AI. Contoh: Buatkan soal cerita matematika yang berhubungan dengan kegiatan sehari-hari di pasar, tingkat kesulitan sedang." 
+                                className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39] text-sm resize-y"
+                                rows="4"
+                            ></textarea>
                         </div>
                     </div>
                 </div>
