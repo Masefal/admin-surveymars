@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\QuizGeneratorController;
 use App\Http\Controllers\Api\QuizController;
 use App\Http\Controllers\Api\StudentApiController;
 use App\Http\Controllers\Api\MasterDataController;
+use App\Http\Controllers\Api\StudentController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -30,4 +31,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/master-data/subjects/{id}', [MasterDataController::class, 'destroySubject']);
     Route::post('/master-data/classes', [MasterDataController::class, 'storeClass']);
     Route::delete('/master-data/classes/{id}', [MasterDataController::class, 'destroyClass']);
+
+    Route::get('/students', [StudentController::class, 'index']);
 });
