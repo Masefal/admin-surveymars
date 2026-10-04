@@ -12,4 +12,9 @@ class StudentResult extends Model
     {
         return $this->belongsTo(Quiz::class);
     }
+
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
+    }
 }
