@@ -1,241 +1,215 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { Sparkles, Loader2, BookOpen, Users, FileText, Target, ListOrdered } from 'lucide-react';
 import AdminLayout from '../Layouts/AdminLayout';
-import { Sparkles, Loader2, AlertCircle } from 'lucide-react';
 
 export default function GenerateQuiz() {
     const navigate = useNavigate();
-    
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const isOrtu = user.role === 'orang_tua';
-    
+    const [classes, setClasses] = useState([]);
+    const [subjects, setSubjects] = useState([]);
+    const [students, setStudents] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [error, setError] = useState('');
+
     const [formData, setFormData] = useState({
-        mapel: '',
-        kelas: '',
-        topik: '',
-        deskripsi: '',
-        jumlah_soal: 5,
-        student_id: ''
+        class_id: '',
+        subject_id: '',
+        target_student_id: '',
+        topic: '',
+        context: '',
+        num_questions: 5
     });
 
-    const [students, setStudents] = useState([]);
-    const [subjects, setSubjects] = useState([]);
-    const [classes, setClasses] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-
     useEffect(() => {
-        axios.get('/api/master-data')
-            .then(response => {
-                setSubjects(response.data.subjects);
-                setClasses(response.data.classes);
-                if (response.data.subjects.length > 0) {
-                    setFormData(prev => ({ ...prev, mapel: response.data.subjects[0].name }));
-                }
-                if (!isOrtu && response.data.classes.length > 0) {
-                    setFormData(prev => ({ ...prev, kelas: response.data.classes[0].name }));
-                }
-            })
-            .catch(err => console.error(err));
+        const fetchData = async () => {
+            try {
+                const [masterRes, studentsRes] = await Promise.all([
+                    axios.get('/api/master-data'),
+                    axios.get('/api/students')
+                ]);
+                
+                const masterData = masterRes.data;
+                setClasses(Array.isArray(masterData.classes) ? masterData.classes : (Array.isArray(masterData) ? masterData : []));
+                setSubjects(Array.isArray(masterData.subjects) ? masterData.subjects : []);
+                
+                const studentData = studentsRes.data;
+                setStudents(Array.isArray(studentData) ? studentData : (Array.isArray(studentData.data) ? studentData.data : []));
+            } catch (err) {
+                setError('Gagal memuat data master.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
 
-        axios.get('/api/students')
-            .then(res => {
-                setStudents(res.data);
-                if (isOrtu && res.data.length > 0) {
-                    const firstChild = res.data[0];
-                    setFormData(prev => ({
-                        ...prev,
-                        student_id: firstChild.id,
-                        kelas: firstChild.student_class?.name || 'Tanpa Kelas'
-                    }));
-                }
-            })
-            .catch(err => console.error(err));
-    }, [isOrtu]);
-
-    const handleChildChange = (e) => {
-        const childId = e.target.value;
-        const selectedChild = students.find(s => s.id == childId);
+    const handleChange = (e) => {
+        const { name, value } = e.target;
         setFormData(prev => ({
             ...prev,
-            student_id: childId,
-            kelas: selectedChild?.student_class?.name || prev.kelas
+            [name]: value,
+            ...(name === 'class_id' && { target_student_id: '' })
         }));
     };
 
-    const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
-        setError(null);
-
-        const payload = { ...formData };
-        if (payload.student_id === '') {
-            payload.student_id = null;
-        }
+        setIsGenerating(true);
+        setError('');
 
         try {
-            const response = await axios.post('/api/generate-quiz', payload);
-            navigate('/review', { state: { quizInfo: formData, generatedQuestions: response.data } });
+            const response = await axios.post('/api/quiz/generate', formData);
+            navigate(`/quiz/${response.data.quiz_id}`);
         } catch (err) {
-            setError(err.response?.data?.error || 'Terjadi kesalahan sistem saat menghubungi AI.');
-        } finally {
-            setLoading(false);
+            setError(err.response?.data?.message || 'Gagal menghasilkan kuis.');
+            setIsGenerating(false);
         }
     };
 
+    const filteredStudents = students.filter(s => s.student_class_id === parseInt(formData.class_id));
+
+    if (loading) {
+        return (
+            <AdminLayout>
+                <div className="min-h-[60vh] flex justify-center items-center">
+                    <Loader2 className="animate-spin text-[#1b6d39]" size={40} />
+                </div>
+            </AdminLayout>
+        );
+    }
+
     return (
         <AdminLayout>
-            <div className="mb-2 text-xs sm:text-sm font-medium text-gray-400">Generate / Buat Kuis Baru</div>
-            
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-6 flex items-center gap-2">
-                <Sparkles className="text-[#2c6de7]" /> Buat Kuis dengan AI
-            </h1>
+            <div className="mb-2 text-sm font-medium text-gray-400">Manajemen / Generate Kuis AI</div>
+            <div className="mb-8">
+                <h1 className="text-3xl font-extrabold text-gray-900 mb-1 flex items-center gap-2">
+                    <Sparkles className="text-[#1b6d39]" /> Generate Kuis AI
+                </h1>
+                <p className="text-gray-500">Buat soal otomatis dengan kecerdasan buatan.</p>
+            </div>
 
             {error && (
-                <div className="mb-6 bg-red-50 text-red-600 p-4 rounded-xl flex items-start gap-3 border border-red-100 shadow-sm">
-                    <AlertCircle className="shrink-0 mt-0.5" size={20} />
-                    <span className="font-medium text-sm">{error}</span>
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl font-medium">
+                    {error}
                 </div>
             )}
 
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 sm:p-8 shadow-sm">
-                <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
                     
-                    <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-xl">
-                        <label className="block text-sm font-extrabold text-blue-900 mb-2">
-                            {isOrtu ? 'Pilih Anak Anda' : 'Target Siswa (Personalisasi AI)'}
-                        </label>
-                        {isOrtu ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                <Users size={18} className="text-blue-500" /> Kelas
+                            </label>
                             <select
-                                name="student_id"
-                                value={formData.student_id}
-                                onChange={handleChildChange}
-                                className="w-full px-4 py-2.5 border border-blue-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white text-sm font-bold"
-                                required
-                            >
-                                {students.map(student => (
-                                    <option key={student.id} value={student.id}>
-                                        {student.name}
-                                    </option>
-                                ))}
-                            </select>
-                        ) : (
-                            <select
-                                name="student_id"
-                                value={formData.student_id}
+                                name="class_id"
+                                value={formData.class_id}
                                 onChange={handleChange}
-                                className="w-full px-4 py-2.5 border border-blue-200 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                                required
+                                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-[#1b6d39] focus:ring-0 outline-none bg-white font-medium text-gray-700"
                             >
-                                <option value="">-- Kuis Umum (Tidak ditargetkan untuk siswa tertentu) --</option>
-                                {students.map(student => (
-                                    <option key={student.id} value={student.id}>
-                                        {student.name} - {student.student_class?.name || 'Tanpa Kelas'}
-                                    </option>
-                                ))}
+                                <option value="">-- Pilih Kelas --</option>
+                                {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
-                        )}
-                        <p className="text-xs text-blue-600 mt-2 flex items-start gap-1">
-                            <Sparkles size={14} className="shrink-0 mt-0.5" />
-                            {isOrtu 
-                                ? 'AI akan menyesuaikan tingkat kesulitan berdasarkan riwayat belajar anak Anda.'
-                                : 'Jika nama siswa dipilih, AI otomatis mencari materi yang belum dipahami oleh anak tersebut.'}
+                        </div>
+
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                <BookOpen size={18} className="text-green-500" /> Mata Pelajaran
+                            </label>
+                            <select
+                                name="subject_id"
+                                value={formData.subject_id}
+                                onChange={handleChange}
+                                required
+                                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-[#1b6d39] focus:ring-0 outline-none bg-white font-medium text-gray-700"
+                            >
+                                <option value="">-- Pilih Mata Pelajaran --</option>
+                                {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="bg-blue-50/50 border border-blue-100 p-5 rounded-xl">
+                        <label className="flex items-center gap-2 text-sm font-bold text-blue-800 mb-2">
+                            <Sparkles size={14} />Target Siswa (Personalisasi AI)
+                        </label>
+                        <select
+                            name="target_student_id"
+                            value={formData.target_student_id}
+                            onChange={handleChange}
+                            disabled={!formData.class_id}
+                            className={`w-full border-2 rounded-xl px-4 py-3 focus:border-blue-400 focus:ring-0 outline-none font-medium ${!formData.class_id ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed' : 'border-blue-200 bg-white text-gray-700'}`}
+                        >
+                            <option value="">-- Kuis untuk Seluruh Siswa di Kelas Ini --</option>
+                            {filteredStudents.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                        <p className="text-xs text-blue-600 mt-2 font-medium flex items-center gap-1">
+                            <Sparkles size={12} /> Pilih kelas terlebih dahulu untuk memunculkan daftar siswa. Biarkan kosong jika kuis untuk satu kelas penuh.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Mata Pelajaran</label>
-                            <select 
-                                name="mapel" 
-                                value={formData.mapel} 
-                                onChange={handleChange} 
-                                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-[#1b6d39] focus:border-[#1b6d39] text-sm bg-white"
-                            >
-                                {subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Kelas</label>
-                            {isOrtu ? (
-                                <input 
-                                    type="text"
-                                    value={formData.kelas || ''} 
-                                    readOnly
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 text-sm font-bold cursor-not-allowed"
-                                />
-                            ) : (
-                                <select 
-                                    name="kelas" 
-                                    value={formData.kelas} 
-                                    onChange={handleChange} 
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-[#1b6d39] focus:border-[#1b6d39] text-sm bg-white"
-                                >
-                                    {classes.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                                </select>
-                            )}
-                        </div>
-                    </div>
-
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Topik Kuis (Nama Quiz)</label>
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                            <FileText size={18} className="text-orange-500" /> Topik Kuis (Nama Kuis)
+                        </label>
                         <input
                             type="text"
-                            required
-                            name="topik"
-                            value={formData.topik}
+                            name="topic"
+                            value={formData.topic}
                             onChange={handleChange}
+                            required
                             placeholder="Contoh: Bangun Datar dan Ruang"
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-[#1b6d39] focus:border-[#1b6d39] text-sm"
+                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-[#1b6d39] focus:ring-0 outline-none font-medium text-gray-700"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Deskripsi / Konteks untuk AI</label>
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                            <FileText size={18} className="text-purple-500" /> Deskripsi / Konteks untuk AI
+                        </label>
                         <textarea
                             name="deskripsi"
                             value={formData.deskripsi}
                             onChange={handleChange}
                             placeholder="Tuliskan konteks spesifik untuk AI. Contoh: Buatkan soal cerita matematika yang berhubungan dengan kegiatan sehari-hari di pasar, tingkat kesulitan sedang."
-                            className="w-full rounded-xl border border-gray-200 px-4 py-3 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39] text-sm resize-y"
+                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-[#1b6d39] focus:ring-0 outline-none font-medium text-gray-700"
                             rows="4"
                         ></textarea>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-2">Jumlah Soal</label>
-                        <input 
+                        <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                            <ListOrdered size={18} className="text-pink-500" /> Jumlah Soal
+                        </label>
+                        <input
                             type="number"
-                            min="1"
-                            max="50"
+                            name="num_questions"
+                            value={formData.num_questions}
+                            onChange={handleChange}
                             required
-                            name="jumlah_soal" 
-                            value={formData.jumlah_soal} 
-                            onChange={handleChange} 
-                            placeholder="Masukkan jumlah soal (maks 50)"
-                            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-[#1b6d39] focus:border-[#1b6d39] text-sm bg-white"
+                            min="1"
+                            max="20"
+                            className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-[#1b6d39] focus:ring-0 outline-none font-medium text-gray-700"
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full bg-[#1b6d39] hover:bg-green-800 text-white font-bold py-3 px-6 rounded-xl flex justify-center items-center gap-2 transition-colors disabled:opacity-70"
-                    >
-                        {loading ? (
-                            <>
-                                <Loader2 className="animate-spin" size={20} />
-                                AI Sedang Berpikir...
-                            </>
-                        ) : (
-                            <>
-                                <Sparkles size={20} />
-                                Generate Kuis Sekarang
-                            </>
-                        )}
-                    </button>
+                    <div className="pt-4 border-t border-gray-100">
+                        <button
+                            type="submit"
+                            disabled={isGenerating || !formData.class_id || !formData.subject_id}
+                            className="w-full bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 transition-all disabled:opacity-50 shadow-sm"
+                        >
+                            {isGenerating ? (
+                                <><Loader2 className="animate-spin" size={20} /> AI Sedang Merakit Kuis...</>
+                            ) : (
+                                <><Sparkles size={20} /> Generate Kuis Sekarang</>
+                            )}
+                        </button>
+                    </div>
                 </form>
             </div>
         </AdminLayout>
