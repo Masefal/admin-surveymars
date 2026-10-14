@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Quiz;
+use App\Models\Student;
 use App\Models\StudentResult;
 use Illuminate\Http\Request;
 
@@ -23,7 +24,7 @@ class StudentApiController extends Controller
         return response()->json($quiz);
     }
 
-    public function submitResult(Request $request,$share_code)
+    public function submitResult(Request $request, $share_code)
     {
         $request->validate([
             'student_name' => 'required|string',
@@ -34,10 +35,16 @@ class StudentApiController extends Controller
             'answers_data' => 'nullable|array'
         ]);
 
-        $quiz = Quiz::where('share_code',$share_code)->firstOrFail();
+        $quiz = Quiz::where('share_code', $share_code)->firstOrFail();
+        
+        $student = Student::firstOrCreate(
+            ['name' => $request->student_name],
+            ['student_class_id' => $quiz->student_class_id]
+        );
 
         $result = StudentResult::create([
             'quiz_id' => $quiz->id,
+            'student_id' => $student->id,
             'student_name' => $request->student_name,
             'score' => $request->score,
             'correct_answers' => $request->correct_answers,

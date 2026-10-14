@@ -8,7 +8,7 @@ export default function Login() {
     const [isRegister, setIsRegister] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+    const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'guru' });
 
     useEffect(() => {
         if (localStorage.getItem('token')) {
@@ -46,23 +46,32 @@ export default function Login() {
                         <h2 className="font-bold text-2xl text-gray-900">Quiz AI</h2>
                     </div>
 
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">
+                    <h1 className="text-4xl font-bold tracking-tight text-gray-900 mb-2">
                         {isRegister ? 'Buat Akun Baru' : 'Selamat Datang'}
                     </h1>
                     <p className="text-gray-500 mb-8">
-                        {isRegister ? 'Daftar sebagai Admin/Guru untuk membuat kuis.' : 'Masuk untuk mengelola kuis dan melihat hasil siswa.'}
+                        {isRegister ? 'Daftar sebagai Guru atau Orang Tua.' : 'Masuk untuk mengelola kuis dan melihat hasil siswa.'}
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {isRegister && (
-                            <div>
-                                <label className="block text-sm font-bold text-gray-900 mb-2">Nama Lengkap</label>
-                                <input type="text" name="name" required placeholder="Misal: Bu Siti" onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] outline-none" />
-                            </div>
+                            <>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-2">Nama Lengkap</label>
+                                    <input type="text" name="name" required placeholder="Misal: Bu Siti atau Pak Budi" onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-900 mb-2">Mendaftar Sebagai</label>
+                                    <select name="role" value={formData.role} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] outline-none">
+                                        <option value="guru">Guru</option>
+                                        <option value="orang_tua">Orang Tua</option>
+                                    </select>
+                                </div>
+                            </>
                         )}
                         <div>
                             <label className="block text-sm font-bold text-gray-900 mb-2">Email</label>
-                            <input type="email" name="email" required placeholder="walimurid@gmail.com" onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] outline-none" />
+                            <input type="email" name="email" required placeholder="email@contoh.com" onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] outline-none" />
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-900 mb-2">Password</label>
@@ -75,8 +84,9 @@ export default function Login() {
                     </form>
 
                     <div className="mt-6 text-center">
+                        {isRegister ? 'Sudah punya akun? ' : 'Belum punya akun? '}
                         <button onClick={() => setIsRegister(!isRegister)} className="text-sm font-bold text-[#1b6d39] hover:underline">
-                            {isRegister ? 'Sudah punya akun? Masuk di sini' : 'Belum punya akun? Daftar sekarang'}
+                            {isRegister ? 'Masuk di sini' : 'Daftar sekarang'}
                         </button>
                     </div>
                 </div>

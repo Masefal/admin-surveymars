@@ -14,7 +14,8 @@ return new class extends Migration
         Schema::create('student_results', function (Blueprint $table) {
             $table->id();
             $table->foreignId('quiz_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('student_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->string('student_name');
             $table->integer('score')->default(0);
             $table->integer('correct_answers')->default(0);
             $table->integer('wrong_answers')->default(0);

@@ -57,6 +57,7 @@ class DatabaseSeeder extends Seeder
         StudentResult::create([
             'quiz_id' => $quiz->id,
             'student_id' => $siswaAndi->id,
+            'student_name' => 'Andi',
             'score' => 100,
             'correct_answers' => 1,
             'wrong_answers' => 0,

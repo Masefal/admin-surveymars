@@ -15,9 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('nisn')->unique()->nullable();
-            // Relasi ke tabel kelas
             $table->foreignId('student_class_id')->constrained()->cascadeOnDelete();
-            // Relasi ke tabel users (Orang Tua yang memantau anak ini)
             $table->foreignId('parent_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });

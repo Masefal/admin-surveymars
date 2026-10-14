@@ -60,8 +60,10 @@ export default function QuizDibagikan() {
 
             <div className="bg-[#1b6d39] rounded-3xl p-6 sm:p-10 text-white mb-8 sm:mb-16 shadow-xl relative mt-2">
                 <div className="flex justify-between items-start mb-4">
-                    <span className="bg-white text-[#1b6d39] font-black px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm shadow-md tracking-wide">
-                        AKTIF
+                    <span className={`bg-white font-black px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm shadow-md tracking-wide ${
+                        quiz?.status === 'active' ? 'text-[#1b6d39]' : 'text-red-500'
+                    }`}>
+                        {quiz?.status === 'active' ? 'AKTIF' : 'DITUTUP'}
                     </span>
                 </div>
 

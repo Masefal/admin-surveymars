@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { LayoutDashboard, BookOpen, Sparkles, Database, Settings, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Sparkles, Database, Settings, LogOut, Menu, X, Users, LineChart } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
     const location = useLocation();
@@ -11,6 +11,8 @@ export default function AdminLayout({ children }) {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userName = user.name || 'Admin';
     const initial = userName.charAt(0).toUpperCase();
+    
+    const userRole = user.role || 'guru';
 
     useEffect(() => {
         if (!localStorage.getItem('token')) {
@@ -18,7 +20,6 @@ export default function AdminLayout({ children }) {
         }
     }, [navigate]);
 
-    // Close sidebar on mobile navigation
     useEffect(() => {
         setSidebarOpen(false);
     }, [location.pathname]);
@@ -34,16 +35,28 @@ export default function AdminLayout({ children }) {
         navigate('/');
     };
 
-    const menus = [
-        { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
-        { name: 'Master Data', icon: <Database size={20} />, path: '/master-data' },
-        { name: 'Generate Quiz', icon: <Sparkles size={20} />, path: '/generate' },
-        { name: 'Bank Soal', icon: <BookOpen size={20} />, path: '/quizzes' }
-    ];
+    const menus = [];
+
+    if (userRole === 'guru' || userRole === 'admin') {
+        menus.push(
+            { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
+            { name: 'Master Data', icon: <Database size={20} />, path: '/master-data' },
+            { name: 'Generate Quiz', icon: <Sparkles size={20} />, path: '/generate' },
+            { name: 'Bank Soal', icon: <BookOpen size={20} />, path: '/quizzes' },
+            { name: 'Kelola Siswa', icon: <Users size={20} />, path: '/kelola-siswa' }
+        );
+    } 
+    else if (userRole === 'orang_tua') {
+        menus.push(
+            { name: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/dashboard' },
+            { name: 'Generate Quiz', icon: <Sparkles size={20} />, path: '/generate' },
+            { name: 'Bank Soal', icon: <BookOpen size={20} />, path: '/quizzes' },
+            { name: 'Pantau Nilai Anak', icon: <LineChart size={20} />, path: '/pantau-anak' }
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#F8F9FA] flex flex-col lg:flex-row">
-            {/* Mobile Top Header */}
             <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-xs">
                 <div className="flex items-center gap-2.5">
                     <button
@@ -68,7 +81,6 @@ export default function AdminLayout({ children }) {
                 </div>
             </header>
 
-            {/* Mobile Backdrop Overlay */}
             {sidebarOpen && (
                 <div 
                     onClick={() => setSidebarOpen(false)}
@@ -77,7 +89,6 @@ export default function AdminLayout({ children }) {
                 />
             )}
 
-            {/* Sidebar */}
             <aside className={`
                 fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out
                 lg:static lg:translate-x-0 lg:h-screen lg:sticky lg:top-0 lg:shrink-0
@@ -130,7 +141,7 @@ export default function AdminLayout({ children }) {
                             </div>
                             <div className="min-w-0 flex-1">
                                 <div className="text-sm font-bold text-gray-800 truncate">{userName}</div>
-                                <div className="text-xs text-gray-500 truncate">{user.email || 'Admin'}</div>
+                                <div className="text-xs text-gray-500 truncate capitalize">{userRole.replace('_', ' ')}</div>
                             </div>
                         </div>
                     </Link>
@@ -138,12 +149,11 @@ export default function AdminLayout({ children }) {
                         onClick={handleLogout} 
                         className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"
                     >
-                        <LogOut size={20} /> Keluar Akun
+                        <LogOut size={20} /> Keluar
                     </button>
                 </div>
             </aside>
 
-            {/* Main Area */}
             <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
                 <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
                     {children}

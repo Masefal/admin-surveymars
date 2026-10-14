@@ -94,6 +94,12 @@ export default function ReviewSoal() {
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                     <span className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-green-50 text-green-700 font-bold text-xs sm:text-sm rounded-full">{questions.length} soal</span>
                     <span className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-white border border-gray-200 text-gray-600 font-semibold text-xs sm:text-sm rounded-full">{quizInfo.mapel}</span>
+                    
+                    {quizInfo.student_id && (
+                        <span className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-blue-50 border border-blue-200 text-blue-700 font-bold text-xs sm:text-sm rounded-full flex items-center gap-1.5 shadow-sm">
+                            <Sparkles size={14} className="text-blue-600" /> Kuis Personal (Adaptive)
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 bg-orange-50 text-orange-600 font-semibold text-xs sm:text-sm rounded-xl border border-orange-100 shadow-xs">
                     <Sparkles size={16} />
@@ -205,7 +211,6 @@ export default function ReviewSoal() {
                 })}
             </div>
 
-            {/* Bottom Responsive Action Bar */}
             <div className="fixed bottom-0 right-0 left-0 lg:left-64 bg-white/95 backdrop-blur-md border-t border-gray-200 p-3 sm:p-4 px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] gap-3">
                 <div className="text-xs sm:text-sm text-gray-500 font-medium text-center sm:text-left">
                     <strong className="text-gray-900">{questions.length}</strong> soal siap dipublikasikan

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function StudentQuiz() {
     const location = useLocation();
@@ -52,7 +52,8 @@ export default function StudentQuiz() {
         let correctCount = 0;
         questions.forEach(q => {
             const selectedOptId = answers[q.id];
-            const correctOpt = q.options.find(o => o.is_correct);
+            // Memastikan q.options ada sebelum memfilter
+            const correctOpt = q.options && q.options.length > 0 ? q.options.find(o => o.is_correct) : null;
             if (correctOpt && selectedOptId === correctOpt.id) {
                 correctCount++;
             }
@@ -67,8 +68,8 @@ export default function StudentQuiz() {
 
         const answersData = questions.map(q => {
             const selectedOptId = answers[q.id];
-            const selectedOpt = q.options.find(o => o.id === selectedOptId);
-            const correctOpt = q.options.find(o => o.is_correct);
+            const selectedOpt = q.options && q.options.length > 0 ? q.options.find(o => o.id === selectedOptId) : null;
+            const correctOpt = q.options && q.options.length > 0 ? q.options.find(o => o.is_correct) : null;
             return {
                 question_text: q.question_text,
                 is_correct: correctOpt && selectedOptId === correctOpt.id,
@@ -132,27 +133,37 @@ export default function StudentQuiz() {
                     </div>
 
                     <div className="space-y-2.5 sm:space-y-3 mb-6 sm:mb-8">
-                        {currentQuestion?.options.map((option, idx) => {
-                            const isSelected = answers[currentQuestion.id] === option.id;
-                            return (
-                                <button
-                                    key={option.id}
-                                    onClick={() => handleSelectOption(option.id)}
-                                    className={`w-full flex items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl border-2 transition-all text-left ${
-                                        isSelected ? 'border-[#1b6d39] bg-green-50/50' : 'border-gray-200 bg-white hover:border-gray-300'
-                                    }`}
-                                >
-                                    <div className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                                        isSelected ? 'border-[#1b6d39]' : 'border-gray-300'
-                                    }`}>
-                                        {isSelected && <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 bg-[#1b6d39] rounded-full"></div>}
-                                    </div>
-                                    <span className="font-semibold text-gray-800 text-xs sm:text-sm">
-                                        <span className="mr-1.5 sm:mr-2 font-bold">{String.fromCharCode(65 + idx)}.</span> {option.option_text}
-                                    </span>
-                                </button>
-                            );
-                        })}
+                        {currentQuestion?.options && currentQuestion.options.length > 0 ? (
+                            currentQuestion.options.map((option, idx) => {
+                                const isSelected = answers[currentQuestion.id] === option.id;
+                                return (
+                                    <button
+                                        key={option.id}
+                                        onClick={() => handleSelectOption(option.id)}
+                                        className={`w-full flex items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl border-2 transition-all text-left ${
+                                            isSelected ? 'border-[#1b6d39] bg-green-50/50' : 'border-gray-200 bg-white hover:border-gray-300'
+                                        }`}
+                                    >
+                                        <div className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
+                                            isSelected ? 'border-[#1b6d39]' : 'border-gray-300'
+                                        }`}>
+                                            {isSelected && <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 bg-[#1b6d39] rounded-full"></div>}
+                                        </div>
+                                        <span className="font-semibold text-gray-800 text-xs sm:text-sm">
+                                            <span className="mr-1.5 sm:mr-2 font-bold">{String.fromCharCode(65 + idx)}.</span> {option.option_text}
+                                        </span>
+                                    </button>
+                                );
+                            })
+                        ) : (
+                            <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 flex items-start gap-3">
+                                <AlertCircle className="shrink-0 mt-0.5" size={20} />
+                                <div>
+                                    <strong className="font-bold">AI Gagal Menyusun Opsi!</strong>
+                                    <p className="text-sm mt-1">Opsi jawaban untuk soal ini kosong/hilang saat digenerate. Silakan langsung tekan <strong>Next</strong> untuk melewati soal ini tanpa dijawab.</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-auto pt-4 sm:pt-6 flex gap-3 sm:gap-4 border-t border-gray-50">

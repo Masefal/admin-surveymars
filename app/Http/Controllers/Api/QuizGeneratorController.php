@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\StudentResult;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -18,15 +19,47 @@ class QuizGeneratorController extends Controller
             'topik' => 'required|string',
             'deskripsi' => 'nullable|string',
             'jumlah_soal' => 'required|integer|min:1|max:20',
+            'student_id' => 'nullable|exists:students,id'
         ]);
 
         $deskripsi = $request->deskripsi ?? 'Tidak ada konteks tambahan.';
+
+        $studentId = $request->student_id;
+        $wrongQuestions = [];
+
+        if ($studentId) {
+            $history = StudentResult::where('student_id', $studentId)->get();
+            
+            foreach ($history as $result) {
+                $answers = json_decode($result->answers_data, true);
+                if (is_array($answers)) {
+                    foreach ($answers as $ans) {
+                        if (isset($ans['is_correct']) && $ans['is_correct'] === false && isset($ans['question_text'])) {
+                            $wrongQuestions[] = $ans['question_text'];
+                        }
+                    }
+                }
+            }
+        }
 
         $prompt = "Anda adalah pembuat soal kuis pendidikan SD yang ahli.
         Tugas: Buat {$request->jumlah_soal} soal pilihan ganda (A, B, C, D) untuk siswa {$request->kelas}.
         Mata Pelajaran: {$request->mapel}.
         Topik/Materi: {$request->topik}.
-        Konteks Tambahan: {$deskripsi}.
+        Konteks Tambahan: {$deskripsi}.";
+
+        if (count($wrongQuestions) > 0) {
+            $uniqueWrongs = array_slice(array_unique($wrongQuestions), 0, 5);
+            $kelemahan = implode("', '", $uniqueWrongs);
+            
+            $prompt .= "
+            
+        DATA PERSONALISASI (SANGAT PENTING):
+        Siswa target sebelumnya TELAH SALAH menjawab soal-soal dengan topik/konsep berikut: '{$kelemahan}'. 
+        Mohon buatkan mayoritas soal yang berfokus melatih ulang konsep-konsep yang salah tersebut agar siswa lebih paham, namun gunakan variasi cerita/angka yang berbeda dari sebelumnya.";
+        }
+
+        $prompt .= "
         
         ATURAN TINGKAT KESULITAN & VARIASI (PENTING!):
         1. Sesuaikan nalar dengan {$request->kelas}. Jika kelas 1-3, gunakan bahasa sangat sederhana. Jika kelas 4-6, gunakan soal nalar/cerita (HOTS) yang menantang.
@@ -107,7 +140,6 @@ class QuizGeneratorController extends Controller
                     ], 500);
                 }
 
-                // Validasi integritas butir soal
                 foreach ($data as $index => $item) {
                     if (! isset($item['question_text']) || ! isset($item['options']) || ! is_array($item['options']) || count($item['options']) < 2) {
                         Log::error('Format butir soal tidak lengkap', [

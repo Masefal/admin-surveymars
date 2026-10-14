@@ -14,6 +14,9 @@ import StudentLanding from './Pages/StudentLanding';
 import StudentQuiz from './Pages/StudentQuiz';
 import StudentResult from './Pages/StudentResult';
 import Pengaturan from './Pages/Pengaturan';
+import StudentManagement from './Pages/StudentManagement';
+import PantauAnak from './Pages/PantauAnak';
+import StudentReport from './Pages/StudentReport';
 
 axios.interceptors.request.use(config => {
     const token = localStorage.getItem('token');
@@ -51,6 +54,9 @@ function App() {
                 <Route path="/q/:quizId" element={<StudentLanding />} />
                 <Route path="/q/:quizId/play" element={<StudentQuiz />} />
                 <Route path="/q/:quizId/result" element={<StudentResult />} />
+                <Route path="/kelola-siswa" element={<StudentManagement />} />
+                <Route path="/pantau-anak" element={<PantauAnak />} />
+                <Route path="/students/:id/report" element={<StudentReport />} />
             </Routes>
         </BrowserRouter>
     );

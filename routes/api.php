@@ -25,6 +25,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/quizzes', [QuizController::class, 'index']);
     Route::post('/quizzes', [QuizController::class, 'store']);
     Route::get('/quizzes/{id}', [QuizController::class, 'show']);
+    Route::put('/quizzes/{id}/status', [QuizController::class, 'updateStatus']);
+    Route::delete('/quizzes/{id}', [QuizController::class, 'destroy']);
+    Route::post('/quizzes/{id}/questions', [QuizController::class, 'addQuestion']);
+    Route::put('/questions/{id}', [QuizController::class, 'updateQuestion']);
+    Route::delete('/questions/{id}', [QuizController::class, 'deleteQuestion']);
 
     Route::get('/master-data', [MasterDataController::class, 'index']);
     Route::post('/master-data/subjects', [MasterDataController::class, 'storeSubject']);
@@ -33,4 +38,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/master-data/classes/{id}', [MasterDataController::class, 'destroyClass']);
 
     Route::get('/students', [StudentController::class, 'index']);
+    Route::get('/students/{id}/report', [StudentController::class, 'report']);
+    Route::post('/students/link', [StudentController::class, 'linkChild']);
 });
