@@ -72,12 +72,37 @@ class StudentController extends Controller
         $student = Student::where('nisn', $request->nisn)->first();
         
         if (!$student) {
-            return response()->json(['error' => 'Siswa dengan NISN tersebut tidak ditemukan.'], 404);
+            return response()->json(['message' => 'Siswa dengan NISN tersebut tidak ditemukan.'], 404);
+        }
+
+        if ($student->parent_id && $student->parent_id !== $request->user()->id) {
+            return response()->json(['message' => 'NISN ini sudah terhubung dengan akun orang tua lain.'], 400);
         }
 
         $student->parent_id = $request->user()->id;
         $student->save();
 
         return response()->json(['message' => 'Data anak berhasil dihubungkan!']);
+    }
+
+    public function getLinkedStudent(Request $request)
+    {
+        $student = Student::with('studentClass')
+                          ->where('parent_id', $request->user()->id)
+                          ->first();
+
+        if (!$student) {
+            return response()->json(['student' => null]);
+        }
+
+        $results = \App\Models\StudentResult::with('quiz')
+                                ->where('student_id', $student->id)
+                                ->orderBy('created_at', 'desc')
+                                ->get();
+
+        return response()->json([
+            'student' => $student,
+            'results' => $results
+        ]);
     }
 }
