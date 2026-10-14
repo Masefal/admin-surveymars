@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
-use App\Models\StudentResult;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller
@@ -24,12 +23,29 @@ class StudentController extends Controller
         return response()->json($students);
     }
 
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'nisn' => 'required|string|unique:students,nisn',
+            'student_class_id' => 'required|exists:student_classes,id'
+        ]);
+
+        $student = Student::create([
+            'name' => $request->name,
+            'nisn' => $request->nisn,
+            'student_class_id' => $request->student_class_id
+        ]);
+
+        return response()->json(['message' => 'Siswa berhasil ditambahkan', 'student' => $student], 201);
+    }
+
     public function report($id)
     {
         try {
             $student = Student::with('studentClass')->findOrFail($id);
             
-            $history = StudentResult::with(['quiz', 'quiz.subject'])
+            $history = \App\Models\StudentResult::with(['quiz', 'quiz.subject'])
                         ->where('student_id', $id)
                         ->orderBy('created_at', 'desc')
                         ->get();
@@ -50,13 +66,13 @@ class StudentController extends Controller
     public function linkChild(Request $request)
     {
         $request->validate([
-            'student_id' => 'required'
+            'nisn' => 'required'
         ]);
         
-        $student = Student::find($request->student_id);
+        $student = Student::where('nisn', $request->nisn)->first();
         
         if (!$student) {
-            return response()->json(['error' => 'Siswa tidak ditemukan.'], 404);
+            return response()->json(['error' => 'Siswa dengan NISN tersebut tidak ditemukan.'], 404);
         }
 
         $student->parent_id = $request->user()->id;

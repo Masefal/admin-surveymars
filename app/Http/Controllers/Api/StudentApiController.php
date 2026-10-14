@@ -21,12 +21,20 @@ class StudentApiController extends Controller
             return response()->json(['error' => 'Kuis tidak ditemukan atau sudah ditutup.'], 404);
         }
 
-        return response()->json($quiz);
+        $students = Student::where('student_class_id', $quiz->student_class_id)
+                           ->orderBy('name', 'asc')
+                           ->get(['id', 'name']);
+
+        return response()->json([
+            'quiz' => $quiz,
+            'students' => $students
+        ]);
     }
 
     public function submitResult(Request $request, $share_code)
     {
         $request->validate([
+            'student_id' => 'required|exists:students,id',
             'student_name' => 'required|string',
             'score' => 'required|integer',
             'correct_answers' => 'required|integer',
@@ -36,15 +44,10 @@ class StudentApiController extends Controller
         ]);
 
         $quiz = Quiz::where('share_code', $share_code)->firstOrFail();
-        
-        $student = Student::firstOrCreate(
-            ['name' => $request->student_name],
-            ['student_class_id' => $quiz->student_class_id]
-        );
 
         $result = StudentResult::create([
             'quiz_id' => $quiz->id,
-            'student_id' => $student->id,
+            'student_id' => $request->student_id,
             'student_name' => $request->student_name,
             'score' => $request->score,
             'correct_answers' => $request->correct_answers,

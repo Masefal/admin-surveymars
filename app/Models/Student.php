@@ -10,19 +10,24 @@ class Student extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 
-        'nisn', 
-        'student_class_id', 
+        'nisn',
+        'name',
+        'student_class_id',
         'parent_id'
     ];
 
     public function studentClass()
     {
-        return $this->belongsTo(StudentClass::class);
+        return $this->belongsTo(StudentClass::class, 'student_class_id');
     }
 
     public function parent()
     {
         return $this->belongsTo(User::class, 'parent_id');
+    }
+
+    public function results()
+    {
+        return $this->hasMany(StudentResult::class);
     }
 }

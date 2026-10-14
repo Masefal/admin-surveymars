@@ -1,198 +1,150 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Loader2, CheckCircle2, ChevronRight, ChevronLeft, Clock, User } from 'lucide-react';
 
 export default function StudentQuiz() {
-    const location = useLocation();
-    const navigate = useNavigate();
     const { quizId } = useParams();
+    const navigate = useNavigate();
+    const location = useLocation();
     
-    const { quiz, studentName } = location.state || {};
-    
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [quiz, setQuiz] = useState(location.state?.quiz || null);
+    const studentId = location.state?.studentId || null;
+    const studentName = location.state?.studentName || '';
+
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState({});
+    const [timeRemaining, setTimeRemaining] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [startTime] = useState(Date.now());
-
-    const hasTimer = quiz?.time_limit_minutes > 0;
-    const [timeRemaining, setTimeRemaining] = useState(hasTimer ? quiz.time_limit_minutes * 60 : null);
 
     useEffect(() => {
-        if (!quiz || !studentName) {
+        if (!studentId || !quiz) {
             navigate(`/q/${quizId}`);
-        }
-    }, [quiz, studentName, navigate, quizId]);
-
-    useEffect(() => {
-        if (!hasTimer) return;
-        
-        if (timeRemaining <= 0) {
-            handleSubmit();
             return;
         }
-        const timer = setInterval(() => setTimeRemaining(prev => prev - 1), 1000);
-        return () => clearInterval(timer);
-    }, [timeRemaining, hasTimer]);
+        if (quiz.time_limit_minutes > 0) setTimeRemaining(quiz.time_limit_minutes * 60);
+    }, [studentId, quiz, navigate, quizId]);
 
-    if (!quiz) return null;
+    useEffect(() => {
+        if (timeRemaining > 0) {
+            const timer = setInterval(() => {
+                setTimeRemaining(prev => {
+                    if (prev <= 1) {
+                        clearInterval(timer);
+                        handleSubmit();
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+    }, [timeRemaining]);
 
-    const questions = quiz.questions || [];
-    const currentQuestion = questions[currentIndex];
-    const isLastQuestion = currentIndex === questions.length - 1;
-
-    const handleSelectOption = (optionId) => {
-        setAnswers({ ...answers, [currentQuestion.id]: optionId });
-    };
+    const handleOptionSelect = (optionId) => setAnswers({ ...answers, [quiz.questions[currentQuestionIndex].id]: optionId });
 
     const handleSubmit = async () => {
-        if (isSubmitting) return;
         setIsSubmitting(true);
+        let correctCount = 0; let wrongCount = 0;
+        const answersData = [];
 
-        let correctCount = 0;
-        questions.forEach(q => {
-            const selectedOptId = answers[q.id];
-            // Memastikan q.options ada sebelum memfilter
-            const correctOpt = q.options && q.options.length > 0 ? q.options.find(o => o.is_correct) : null;
-            if (correctOpt && selectedOptId === correctOpt.id) {
-                correctCount++;
-            }
+        quiz.questions.forEach(q => {
+            const selectedOptionId = answers[q.id];
+            const selectedOption = q.options.find(o => o.id === selectedOptionId);
+            if (selectedOption?.is_correct) correctCount++; else wrongCount++;
+            answersData.push({ question_id: q.id, question_text: q.question_text, selected_option_id: selectedOptionId || null, is_correct: !!selectedOption?.is_correct });
         });
 
-        const wrongCount = questions.length - correctCount;
-        const finalScore = Math.round((correctCount / questions.length) * 100);
-        
-        const timeSpent = hasTimer 
-            ? (quiz.time_limit_minutes * 60) - timeRemaining 
-            : Math.floor((Date.now() - startTime) / 1000);
-
-        const answersData = questions.map(q => {
-            const selectedOptId = answers[q.id];
-            const selectedOpt = q.options && q.options.length > 0 ? q.options.find(o => o.id === selectedOptId) : null;
-            const correctOpt = q.options && q.options.length > 0 ? q.options.find(o => o.is_correct) : null;
-            return {
-                question_text: q.question_text,
-                is_correct: correctOpt && selectedOptId === correctOpt.id,
-                student_answer: selectedOpt ? selectedOpt.option_text : 'Tidak dijawab',
-                correct_answer: correctOpt ? correctOpt.option_text : '-'
-            };
-        });
-
+        const timeSpent = (quiz.time_limit_minutes * 60) - timeRemaining;
         const payload = {
-            student_name: studentName,
-            score: finalScore,
-            correct_answers: correctCount,
-            wrong_answers: wrongCount,
-            time_spent_seconds: timeSpent,
+            student_id: studentId, student_name: studentName,
+            score: Math.round((correctCount / quiz.questions.length) * 100),
+            correct_answers: correctCount, wrong_answers: wrongCount,
+            time_spent_seconds: timeSpent > 0 ? timeSpent : 0,
             answers_data: answersData
         };
 
         try {
             await axios.post(`/api/student/quiz/${quizId}/submit`, payload);
-            sessionStorage.setItem(`quiz_result_${quizId}`, JSON.stringify({ result: payload, quiz: quiz, studentAnswers: answers }));
-            navigate(`/q/${quizId}/result`, { state: { result: payload, quiz: quiz, studentAnswers: answers } });
+            navigate(`/q/${quizId}/result`, { state: { result: payload, quiz, studentAnswers: answers } });
         } catch (error) {
-            alert("Gagal menyimpan hasil. Silakan coba lagi.");
+            alert('Gagal mengirimkan kuis.');
             setIsSubmitting(false);
         }
     };
 
-    const formatTime = (seconds) => {
-        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-        const s = (seconds % 60).toString().padStart(2, '0');
-        return `${m}:${s}`;
-    };
-
-    const progressPercentage = ((currentIndex + 1) / questions.length) * 100;
-
+    if (!quiz || !studentId) return null;
+    const currentQuestion = quiz.questions[currentQuestionIndex];
+    
     return (
-        <div className="min-h-screen bg-gray-50 flex justify-center font-sans">
-            <div className="w-full max-w-md bg-white min-h-screen flex flex-col shadow-sm relative">
-                <header className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 bg-white sticky top-0 z-20 border-b border-gray-50">
-                    <div className="flex justify-between items-end mb-2.5">
-                        <h1 className="font-bold text-gray-900 truncate pr-3 text-base sm:text-lg">{quiz.title}</h1>
-                        <span className="text-[#1b6d39] font-bold text-xs sm:text-sm whitespace-nowrap">{currentIndex + 1} / {questions.length}</span>
+        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+            {/* HEADER SERAGAM */}
+            <header className="bg-white px-4 sm:px-8 py-3.5 sm:py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                    <img src="https://fithrahinsani.org/wp-content/uploads/2023/11/Logo-YFIB.png" alt="Logo" className="h-7 sm:h-9 w-auto" />
+                    <h1 className="font-bold text-gray-900 tracking-tight text-sm sm:text-base hidden sm:block">SIT FITHRAH INSANI</h1>
+                </div>
+                {quiz.time_limit_minutes > 0 && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 font-bold bg-orange-50 border border-orange-100 text-orange-600 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm shrink-0">
+                        <Clock size={16} className="hidden sm:block" /> {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
-                        <div className="bg-[#1b6d39] h-1.5 sm:h-2 rounded-full transition-all duration-300" style={{ width: `${progressPercentage}%` }}></div>
-                    </div>
-                </header>
+                )}
+            </header>
 
-                <main className="flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto">
-                    <div className="flex justify-end mb-4 min-h-[30px]">
-                        {hasTimer && (
-                            <div className="bg-orange-50 text-[#F2994A] font-bold px-3.5 py-1 rounded-full text-xs sm:text-sm border border-orange-100">
-                                {formatTime(timeRemaining)}
-                            </div>
-                        )}
+            {/* KONTEN SERAGAM */}
+            <main className="flex-1 w-full max-w-4xl mx-auto p-4 sm:p-6 md:p-8 flex flex-col justify-center">
+                <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm">
+                    <div>
+                        <h2 className="font-bold text-gray-900 text-sm sm:text-base truncate">{quiz.title}</h2>
+                        <div className="flex items-center gap-1 text-xs text-gray-500 mt-1"><User size={12}/> {studentName}</div>
                     </div>
-
-                    <div className="mb-6 sm:mb-8">
-                        <div className="text-xs sm:text-sm font-semibold text-gray-400 mb-1.5">Pertanyaan {currentIndex + 1}</div>
-                        <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 leading-snug">{currentQuestion?.question_text}</h2>
+                    <div className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 text-center">
+                        Soal {currentQuestionIndex + 1} / {quiz.questions.length}
                     </div>
+                </div>
 
-                    <div className="space-y-2.5 sm:space-y-3 mb-6 sm:mb-8">
-                        {currentQuestion?.options && currentQuestion.options.length > 0 ? (
-                            currentQuestion.options.map((option, idx) => {
-                                const isSelected = answers[currentQuestion.id] === option.id;
-                                return (
-                                    <button
-                                        key={option.id}
-                                        onClick={() => handleSelectOption(option.id)}
-                                        className={`w-full flex items-center gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-2xl border-2 transition-all text-left ${
-                                            isSelected ? 'border-[#1b6d39] bg-green-50/50' : 'border-gray-200 bg-white hover:border-gray-300'
-                                        }`}
-                                    >
-                                        <div className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                                            isSelected ? 'border-[#1b6d39]' : 'border-gray-300'
-                                        }`}>
-                                            {isSelected && <div className="h-2.5 w-2.5 sm:h-3 sm:w-3 bg-[#1b6d39] rounded-full"></div>}
-                                        </div>
-                                        <span className="font-semibold text-gray-800 text-xs sm:text-sm">
-                                            <span className="mr-1.5 sm:mr-2 font-bold">{String.fromCharCode(65 + idx)}.</span> {option.option_text}
-                                        </span>
-                                    </button>
-                                );
-                            })
-                        ) : (
-                            <div className="bg-red-50 text-red-600 p-4 rounded-xl border border-red-100 flex items-start gap-3">
-                                <AlertCircle className="shrink-0 mt-0.5" size={20} />
-                                <div>
-                                    <strong className="font-bold">AI Gagal Menyusun Opsi!</strong>
-                                    <p className="text-sm mt-1">Opsi jawaban untuk soal ini kosong/hilang saat digenerate. Silakan langsung tekan <strong>Next</strong> untuk melewati soal ini tanpa dijawab.</p>
-                                </div>
-                            </div>
-                        )}
+                <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 md:p-10 shadow-sm border border-gray-100 mb-6 sm:mb-8">
+                    <h3 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 leading-relaxed">
+                        {currentQuestion.question_text}
+                    </h3>
+                    <div className="space-y-3 sm:space-y-4">
+                        {currentQuestion.options.map(option => (
+                            <button
+                                key={option.id} onClick={() => handleOptionSelect(option.id)}
+                                className={`w-full text-left p-4 sm:p-5 rounded-xl border-2 flex items-center justify-between transition-all ${answers[currentQuestion.id] === option.id ? 'border-[#1b6d39] bg-green-50' : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50/50'}`}
+                            >
+                                <span className={`text-sm sm:text-base ${answers[currentQuestion.id] === option.id ? 'text-[#1b6d39] font-bold' : 'text-gray-700 font-medium'}`}>{option.option_text}</span>
+                                {answers[currentQuestion.id] === option.id && <CheckCircle2 className="text-[#1b6d39] shrink-0 ml-3" size={20} />}
+                            </button>
+                        ))}
                     </div>
+                </div>
 
-                    <div className="mt-auto pt-4 sm:pt-6 flex gap-3 sm:gap-4 border-t border-gray-50">
-                        <button 
-                            onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-                            disabled={currentIndex === 0}
-                            className="flex-1 bg-white border-2 border-gray-200 disabled:opacity-40 hover:bg-gray-50 text-gray-700 font-bold rounded-xl py-3 sm:py-3.5 flex justify-center items-center gap-1.5 transition-all text-xs sm:text-sm"
+                <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 sm:gap-0">
+                    <button
+                        onClick={() => setCurrentQuestionIndex(prev => prev - 1)} disabled={currentQuestionIndex === 0}
+                        className="w-full sm:w-auto bg-white border-2 border-gray-200 text-gray-700 font-bold px-6 py-3.5 sm:py-4 rounded-xl flex justify-center items-center gap-2 disabled:opacity-30 transition-colors hover:bg-gray-50 text-sm sm:text-base"
+                    >
+                        <ChevronLeft size={18} /> Sebelumnya
+                    </button>
+
+                    {currentQuestionIndex === quiz.questions.length - 1 ? (
+                        <button
+                            onClick={handleSubmit} disabled={isSubmitting || Object.keys(answers).length < quiz.questions.length}
+                            className="w-full sm:w-auto bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold px-8 py-3.5 sm:py-4 rounded-xl disabled:opacity-50 flex justify-center items-center gap-2 transition-colors shadow-sm text-sm sm:text-base"
                         >
-                            <ArrowLeft size={18} /> Prev
+                            {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : 'Kumpulkan Kuis'}
                         </button>
-                        {isLastQuestion ? (
-                            <button 
-                                onClick={handleSubmit}
-                                disabled={isSubmitting}
-                                className="flex-[2] bg-[#F2994A] hover:bg-[#e0893d] disabled:bg-gray-400 text-white font-bold rounded-xl py-3 sm:py-3.5 flex justify-center items-center gap-1.5 transition-all text-xs sm:text-sm shadow-sm"
-                            >
-                                {isSubmitting ? 'Menyimpan...' : 'Kumpulkan'} <CheckCircle2 size={18} />
-                            </button>
-                        ) : (
-                            <button 
-                                onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                                className="flex-[2] bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold rounded-xl py-3 sm:py-3.5 flex justify-center items-center gap-1.5 transition-all text-xs sm:text-sm shadow-sm"
-                            >
-                                Next <ArrowRight size={18} />
-                            </button>
-                        )}
-                    </div>
-                </main>
-            </div>
+                    ) : (
+                        <button
+                            onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+                            className="w-full sm:w-auto bg-gray-900 hover:bg-gray-800 text-white font-bold px-8 py-3.5 sm:py-4 rounded-xl flex justify-center items-center gap-2 transition-colors shadow-sm text-sm sm:text-base"
+                        >
+                            Selanjutnya <ChevronRight size={18} />
+                        </button>
+                    )}
+                </div>
+            </main>
         </div>
     );
 }

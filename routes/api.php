@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/master-data/classes/{id}', [MasterDataController::class, 'destroyClass']);
 
     Route::get('/students', [StudentController::class, 'index']);
+    Route::post('/students', [StudentController::class, 'store']);
     Route::get('/students/{id}/report', [StudentController::class, 'report']);
     Route::post('/students/link', [StudentController::class, 'linkChild']);
 });
