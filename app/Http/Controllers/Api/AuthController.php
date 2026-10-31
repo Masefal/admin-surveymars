@@ -16,14 +16,14 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|unique:users',
             'password' => 'required|string|min:6',
-            'role' => 'required|in:guru,orang_tua,admin'
         ]);
 
+        // Pendaftaran mandiri hanya untuk orang tua. Akun guru dibuat lewat seeder.
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role ?? 'guru',
+            'role' => 'orang_tua',
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;

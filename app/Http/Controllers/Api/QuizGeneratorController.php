@@ -19,7 +19,8 @@ class QuizGeneratorController extends Controller
             'topik' => 'required|string',
             'deskripsi' => 'nullable|string',
             'jumlah_soal' => 'required|integer|min:1|max:20',
-            'student_id' => 'nullable|exists:students,id'
+            'student_id' => 'nullable|exists:students,id',
+            'subject_id' => 'nullable|exists:subjects,id',
         ]);
 
         $deskripsi = $request->deskripsi ?? 'Tidak ada konteks tambahan.';
@@ -27,11 +28,26 @@ class QuizGeneratorController extends Controller
         $studentId = $request->student_id;
         $wrongQuestions = [];
 
+        if ($request->user()->isOrangTua()) {
+            if (! $studentId || ! $request->user()->children()->whereKey($studentId)->exists()) {
+                return response()->json([
+                    'error' => 'Orang tua hanya dapat membuat kuis personal untuk anaknya sendiri.',
+                ], 403);
+            }
+        }
+
         if ($studentId) {
-            $history = StudentResult::where('student_id', $studentId)->get();
-            
+            // Hanya kesalahan di mapel yang sama, supaya kuis Agama tidak berisi soal Matematika
+            $history = StudentResult::where('student_id', $studentId)
+                ->whereHas('quiz', function ($q) use ($request) {
+                    $request->filled('subject_id')
+                        ? $q->where('subject_id', $request->subject_id)
+                        : $q->whereHas('subject', fn ($s) => $s->where('name', $request->mapel));
+                })
+                ->latest()->take(20)->get();
+
             foreach ($history as $result) {
-                $answers = json_decode($result->answers_data, true);
+                $answers = $result->answers_data;
                 if (is_array($answers)) {
                     foreach ($answers as $ans) {
                         if (isset($ans['is_correct']) && $ans['is_correct'] === false && isset($ans['question_text'])) {
@@ -54,13 +70,16 @@ class QuizGeneratorController extends Controller
             
             $prompt .= "
             
-        DATA PERSONALISASI (SANGAT PENTING):
-        Siswa target sebelumnya TELAH SALAH menjawab soal-soal dengan topik/konsep berikut: '{$kelemahan}'. 
-        Mohon buatkan mayoritas soal yang berfokus melatih ulang konsep-konsep yang salah tersebut agar siswa lebih paham, namun gunakan variasi cerita/angka yang berbeda dari sebelumnya.";
+        DATA PERSONALISASI:
+        Siswa target sebelumnya salah menjawab soal {$request->mapel} berikut: '{$kelemahan}'.
+        Jika konsepnya sesuai dengan topik di atas, utamakan soal yang melatih ulang konsep tersebut dengan variasi cerita/angka yang berbeda. Abaikan data ini bila tidak berkaitan dengan topik.";
         }
 
         $prompt .= "
-        
+
+        ATURAN UTAMA (WAJIB, TIDAK BOLEH DILANGGAR):
+        Semua soal HARUS tentang mata pelajaran {$request->mapel} dengan topik {$request->topik}. Jangan membuat soal dari mata pelajaran lain.
+
         ATURAN TINGKAT KESULITAN & VARIASI (PENTING!):
         1. Sesuaikan nalar dengan {$request->kelas}. Jika kelas 1-3, gunakan bahasa sangat sederhana. Jika kelas 4-6, gunakan soal nalar/cerita (HOTS) yang menantang.
         2. DILARANG menggunakan soal yang itu-itu saja. Buat skenario, nama tokoh, atau variasi angka yang kreatif dan acak.
@@ -88,10 +107,10 @@ class QuizGeneratorController extends Controller
             ], 500);
         }
 
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}";
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent";
 
         try {
-            $response = Http::withoutVerifying()
+            $response = Http::withHeaders(['x-goog-api-key' => $apiKey])
                 ->timeout(120)
                 ->post($url, [
                     'contents' => [
@@ -178,7 +197,7 @@ class QuizGeneratorController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'Terjadi kesalahan sistem saat memproses soal: '.$e->getMessage(),
+                'error' => 'Terjadi kesalahan sistem saat memproses soal. Silakan coba lagi.',
             ], 500);
         }
     }

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { formatDuration } from '../format';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
-import { ArrowLeft, Users, Clock, Trophy, ChevronDown, ChevronUp, CheckCircle2, XCircle, Send, BarChart3, Target, AlertTriangle, ListChecks, Edit, Trash2, Plus, X } from 'lucide-react';
+import { ArrowLeft, Users, Clock, Trophy, ChevronDown, ChevronUp, CheckCircle2, XCircle, Send, BarChart3, Target, AlertTriangle, ListChecks, Edit, Trash2, Plus, X, RotateCcw, UserRound } from 'lucide-react';
+import { ATTEMPT_OPTIONS, attemptLabel } from '../attempts';
 
 export default function QuizDetail() {
     const { id } = useParams();
@@ -11,6 +13,7 @@ export default function QuizDetail() {
     const [loading, setLoading] = useState(true);
     const [expandedRow, setExpandedRow] = useState(null);
     const [activeTab, setActiveTab] = useState('analitik');
+    const [remedialMenuOpen, setRemedialMenuOpen] = useState(false);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,6 +40,21 @@ export default function QuizDetail() {
     }, [id]);
 
     const toggleRow = (idx) => setExpandedRow(expandedRow === idx ? null : idx);
+
+    const updateAttempts = async (value) => {
+        try {
+            await axios.put(`/api/quizzes/${id}/settings`, { max_attempts: value ? parseInt(value) : null });
+            setQuiz(prev => ({ ...prev, max_attempts: value ? parseInt(value) : null }));
+        } catch (error) {
+            alert('Gagal menyimpan kesempatan mengerjakan.');
+        }
+    };
+
+    // Data lama tersimpan sebagai string JSON, data baru sudah berupa array
+    const parseAnswers = (data) => {
+        if (Array.isArray(data)) return data;
+        try { return JSON.parse(data) || []; } catch { return []; }
+    };
 
     const handleDeleteQuestion = async (questionId) => {
         if (!confirm('Yakin ingin menghapus soal ini?')) return;
@@ -113,14 +131,30 @@ export default function QuizDetail() {
     // PERBAIKAN GRAFIK: Hanya ambil nilai terakhir untuk setiap siswa unik
     const uniqueStudentsMap = new Map();
     results.forEach(r => {
-        if (!uniqueStudentsMap.has(r.student_name)) {
-            uniqueStudentsMap.set(r.student_name, r);
+        const key = r.student_id || r.student_name;
+        if (!uniqueStudentsMap.has(key)) {
+            uniqueStudentsMap.set(key, r);
         }
     });
     const latestUniqueResults = Array.from(uniqueStudentsMap.values());
 
     const averageScore = latestUniqueResults.length > 0 ? Math.round(latestUniqueResults.reduce((acc, curr) => acc + curr.score, 0) / latestUniqueResults.length) : 0;
     const strugglingStudents = latestUniqueResults.filter(r => r.score < 70);
+    // Hasil lama tanpa student_id tidak bisa dijadikan target kuis personal
+    const remedialCandidates = strugglingStudents.filter(r => r.student_id);
+
+    const startRemedial = (r) => navigate('/generate', {
+        state: {
+            remedial: {
+                title: quiz.title,
+                classId: quiz.student_class_id,
+                className: quiz.student_class?.name,
+                subjectId: quiz.subject_id,
+                subjectName: quiz.subject?.name,
+                student: { student_id: r.student_id, student_name: r.student_name, score: r.score }
+            }
+        }
+    });
     const questions = quiz.questions || [];
 
     return (
@@ -130,21 +164,63 @@ export default function QuizDetail() {
                 <div className="text-xs sm:text-sm font-medium text-gray-400">Beranda / Detail Quiz</div>
             </div>
 
-            <div className="bg-[#1b6d39] rounded-2xl p-6 sm:p-8 text-white mb-6 sm:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center relative overflow-hidden shadow-sm gap-4 sm:gap-6">
+            <div className="bg-[#1b6d39] rounded-2xl p-6 sm:p-8 text-white mb-6 sm:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center relative shadow-sm gap-4 sm:gap-6">
                 <div className="relative z-10">
+                    <span className="inline-flex items-center gap-1.5 bg-white/20 border border-white/30 px-3 py-1 rounded-full text-[11px] font-bold tracking-wider uppercase mb-3">
+                        {quiz.target_student_id ? <UserRound size={13} /> : <Users size={13} />}
+                        {quiz.target_student_id ? 'Kuis Personal' : 'Kuis Umum'}
+                    </span>
                     <h1 className="text-2xl sm:text-3xl font-extrabold mb-1.5">{quiz.title}</h1>
-                    <p className="text-green-100 text-sm sm:text-base font-medium">{quiz.subject?.name} • {quiz.student_class?.name}</p>
+                    <p className="text-green-100 text-sm sm:text-base font-medium">
+                        {quiz.subject?.name} • {quiz.student_class?.name}
+                    </p>
+                    <p className="text-green-50 text-xs sm:text-sm mt-1">
+                        {quiz.target_student_id
+                            ? <>Hanya untuk <strong>{quiz.target_student?.name}</strong>. Siswa lain tidak bisa mengerjakan kuis ini.</>
+                            : <>Untuk semua siswa {quiz.student_class?.name}.</>}
+                    </p>
+                    <div className="mt-2 flex items-center gap-2 text-xs sm:text-sm text-green-100 font-medium">
+                        <RotateCcw size={14} /> Kesempatan per siswa:
+                        {quiz.can_manage ? (
+                            <select
+                                value={quiz.max_attempts ?? ''}
+                                onChange={(e) => updateAttempts(e.target.value)}
+                                className="bg-white/15 border border-white/30 rounded-md px-2 py-0.5 font-bold text-white outline-none"
+                            >
+                                {ATTEMPT_OPTIONS.map(o => <option key={o.value} value={o.value} className="text-gray-900">{o.label}</option>)}
+                            </select>
+                        ) : (
+                            <span className="font-bold text-white">{attemptLabel(quiz.max_attempts)}</span>
+                        )}
+                    </div>
                 </div>
                 
                 <div className="relative z-10 flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto justify-between md:justify-end border-t border-green-700/50 pt-4 md:border-0 md:pt-0">
                     {/* PERBAIKAN TOMBOL: Hanya muncul jika ada siswa yang remedial */}
-                    {strugglingStudents.length > 0 && (
-                        <button 
-                            onClick={() => navigate('/generate', { state: { remedialTarget: strugglingStudents } })}
-                            className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 transition-colors text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md shrink-0 text-sm sm:text-base"
-                        >
-                            <Target size={18} /> Generate Remedial AI
-                        </button>
+                    {remedialCandidates.length > 0 && (
+                        <div className="relative w-full sm:w-auto">
+                            <button
+                                onClick={() => remedialCandidates.length === 1 ? startRemedial(remedialCandidates[0]) : setRemedialMenuOpen(!remedialMenuOpen)}
+                                className="w-full sm:w-auto bg-orange-500 hover:bg-orange-600 transition-colors text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md shrink-0 text-sm sm:text-base"
+                            >
+                                <Target size={18} /> Generate Remedial AI
+                                {remedialCandidates.length > 1 && <ChevronDown size={16} />}
+                            </button>
+                            {remedialMenuOpen && (
+                                <div className="absolute right-0 mt-2 w-full sm:w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-20 text-gray-800">
+                                    <p className="px-4 pb-2 text-[11px] font-bold text-gray-400 uppercase tracking-wider">Pilih siswa</p>
+                                    {remedialCandidates.map(r => (
+                                        <button
+                                            key={r.student_id}
+                                            onClick={() => startRemedial(r)}
+                                            className="w-full text-left px-4 py-2 text-sm font-semibold hover:bg-orange-50 flex justify-between"
+                                        >
+                                            {r.student_name} <span className="text-red-600 font-black">{r.score}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     )}
                     <button 
                         onClick={() => navigate('/dibagikan', { state: { quiz: quiz } })}
@@ -212,6 +288,16 @@ export default function QuizDetail() {
                                                 <div className={`h-full ${res.score >= 70 ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: `${res.score}%` }}></div>
                                             </div>
                                             <span className={`text-sm font-bold w-12 text-right ${res.score >= 70 ? 'text-green-600' : 'text-red-600'}`}>{res.score}</span>
+                                            {res.score < 70 && res.student_id ? (
+                                                <button
+                                                    onClick={() => startRemedial(res)}
+                                                    className="shrink-0 w-24 text-xs font-bold text-orange-600 bg-orange-50 border border-orange-100 hover:bg-orange-100 px-2.5 py-1.5 rounded-lg flex items-center justify-center gap-1"
+                                                >
+                                                    <Target size={13} /> Remedial
+                                                </button>
+                                            ) : (
+                                                <span className="shrink-0 w-24 hidden sm:block" />
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -244,7 +330,7 @@ export default function QuizDetail() {
                                                 <td className="p-3.5 sm:p-4 text-center font-medium text-gray-500">
                                                     <div className="flex items-center justify-center gap-1.5">
                                                         <Clock size={14} className="text-gray-400"/>
-                                                        {Math.floor(result.time_spent_seconds / 60)}m {result.time_spent_seconds % 60}s
+                                                        {formatDuration(result.time_spent_seconds)}
                                                     </div>
                                                 </td>
                                                 <td className="p-3.5 sm:p-4 text-center font-bold">
@@ -261,16 +347,21 @@ export default function QuizDetail() {
                                                     <td colSpan="4" className="p-4 sm:p-6">
                                                         <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
                                                             <div className="space-y-3">
-                                                                {JSON.parse(result.answers_data).map((ans, i) => (
+                                                                {parseAnswers(result.answers_data).map((ans, i) => {
+                                                                    const question = questions.find(q => q.id === ans.question_id);
+                                                                    const studentAnswer = question?.options?.find(o => o.id === ans.selected_option_id)?.option_text || 'Tidak dijawab';
+                                                                    const correctAnswer = question?.options?.find(o => o.is_correct)?.option_text || '-';
+                                                                    return (
                                                                     <div key={i} className={`p-3 rounded-lg border flex gap-3 ${ans.is_correct ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100'}`}>
                                                                         <div className="mt-0.5 shrink-0">{ans.is_correct ? <CheckCircle2 size={18} className="text-green-600"/> : <XCircle size={18} className="text-red-500"/>}</div>
                                                                         <div className="flex-1 min-w-0">
                                                                             <p className="font-semibold text-gray-900 text-xs sm:text-sm mb-1">{ans.question_text}</p>
-                                                                            <p className="text-xs font-medium text-gray-600">Jawaban Siswa: <span className={ans.is_correct ? 'text-green-700 font-bold' : 'text-red-600 font-bold line-through'}>{ans.student_answer}</span></p>
-                                                                            {!ans.is_correct && <p className="text-xs font-bold text-[#1b6d39] mt-0.5">Kunci: {ans.correct_answer}</p>}
+                                                                            <p className="text-xs font-medium text-gray-600">Jawaban Siswa: <span className={ans.is_correct ? 'text-green-700 font-bold' : 'text-red-600 font-bold line-through'}>{studentAnswer}</span></p>
+                                                                            {!ans.is_correct && <p className="text-xs font-bold text-[#1b6d39] mt-0.5">Kunci: {correctAnswer}</p>}
                                                                         </div>
                                                                     </div>
-                                                                ))}
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     </td>
@@ -288,11 +379,11 @@ export default function QuizDetail() {
 
             {activeTab === 'soal' && (
                 <div className="animate-in fade-in duration-300">
-                    <div className="flex justify-end mb-4">
+                    {quiz.can_manage && <div className="flex justify-end mb-4">
                         <button onClick={openAddModal} className="bg-[#1b6d39] hover:bg-[#14532b] text-white px-4 py-2.5 rounded-xl font-bold flex items-center gap-2 text-sm transition-colors shadow-sm">
                             <Plus size={18} /> Tambah Soal Manual
                         </button>
-                    </div>
+                    </div>}
                     
                     {questions.length === 0 ? (
                         <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-gray-500 shadow-sm">Belum ada soal di kuis ini.</div>
@@ -300,10 +391,10 @@ export default function QuizDetail() {
                         <div className="space-y-4 mb-10">
                             {questions.map((q, i) => (
                                 <div key={q.id} className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-6 relative group hover:border-[#1b6d39]/50 transition-colors">
-                                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {quiz.can_manage && <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button onClick={() => openEditModal(q)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors" title="Edit Soal"><Edit size={16} /></button>
                                         <button onClick={() => handleDeleteQuestion(q.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" title="Hapus Soal"><Trash2 size={16} /></button>
-                                    </div>
+                                    </div>}
                                     <h4 className="text-base sm:text-lg font-bold text-gray-900 mb-4 pr-20">{i + 1}. {q.question_text}</h4>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {q.options?.map((opt, oIdx) => (

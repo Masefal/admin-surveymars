@@ -4,23 +4,23 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
+use App\Models\StudentResult;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class StudentController extends Controller
 {
     public function index(Request $request)
     {
         $user = $request->user();
-        
-        if ($user && $user->role === 'orang_tua' && $request->query('all') !== 'true') {
-            $students = Student::with(['studentClass', 'parent'])
-                ->where('parent_id', $user->id)
-                ->get();
-        } else {
-            $students = Student::with(['studentClass', 'parent'])->get();
+
+        $query = Student::with(['studentClass', 'parent:id,name']);
+
+        if (! $user->isGuru()) {
+            $query->where('parent_id', $user->id);
         }
-        
-        return response()->json($students);
+
+        return response()->json($query->orderBy('name')->get());
     }
 
     public function store(Request $request)
@@ -42,67 +42,70 @@ class StudentController extends Controller
 
     public function report($id)
     {
-        try {
-            $student = Student::with('studentClass')->findOrFail($id);
-            
-            $history = \App\Models\StudentResult::with(['quiz', 'quiz.subject'])
-                        ->where('student_id', $id)
-                        ->orderBy('created_at', 'desc')
-                        ->get();
+        $student = Student::with('studentClass')->findOrFail($id);
+        Gate::authorize('view', $student);
 
-            return response()->json([
-                'student' => $student,
-                'history' => $history
-            ]);
-            
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Terjadi kesalahan pada server',
-                'detail_error' => $e->getMessage()
-            ], 500);
-        }
+        $history = StudentResult::with(['quiz', 'quiz.subject'])
+                    ->where('student_id', $id)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
+        return response()->json([
+            'student' => $student,
+            'history' => $history
+        ]);
     }
 
     public function linkChild(Request $request)
     {
         $request->validate([
-            'nisn' => 'required'
+            'nisn' => 'required|string',
+            'name' => 'required|string',
         ]);
-        
-        $student = Student::where('nisn', $request->nisn)->first();
-        
-        if (!$student) {
-            return response()->json(['message' => 'Siswa dengan NISN tersebut tidak ditemukan.'], 404);
+
+        $student = Student::where('nisn', trim($request->nisn))->first();
+
+        // Pesan yang sama untuk NISN salah maupun nama tidak cocok, supaya NISN tidak bisa ditebak
+        if (! $student || ! $this->sameName($student->name, $request->name)) {
+            return response()->json(['message' => 'NISN dan nama lengkap anak tidak cocok dengan data sekolah.'], 404);
         }
 
-        if ($student->parent_id && $student->parent_id !== $request->user()->id) {
-            return response()->json(['message' => 'NISN ini sudah terhubung dengan akun orang tua lain.'], 400);
+        if ($student->parent_id && (int) $student->parent_id !== (int) $request->user()->id) {
+            return response()->json(['message' => 'NISN ini sudah terhubung dengan akun orang tua lain. Silakan hubungi wali kelas.'], 400);
         }
 
         $student->parent_id = $request->user()->id;
         $student->save();
 
-        return response()->json(['message' => 'Data anak berhasil dihubungkan!']);
+        return response()->json(['message' => 'Data anak berhasil dihubungkan!', 'student' => $student]);
     }
 
     public function getLinkedStudent(Request $request)
     {
-        $student = Student::with('studentClass')
-                          ->where('parent_id', $request->user()->id)
-                          ->first();
+        $children = $request->user()->children()->with('studentClass')->orderBy('name')->get();
 
-        if (!$student) {
-            return response()->json(['student' => null]);
+        if ($children->isEmpty()) {
+            return response()->json(['students' => [], 'student' => null, 'results' => []]);
         }
 
-        $results = \App\Models\StudentResult::with('quiz')
+        $student = $children->firstWhere('id', (int) $request->query('student_id')) ?? $children->first();
+
+        $results = StudentResult::with('quiz.subject')
                                 ->where('student_id', $student->id)
                                 ->orderBy('created_at', 'desc')
                                 ->get();
 
         return response()->json([
+            'students' => $children,
             'student' => $student,
             'results' => $results
         ]);
+    }
+
+    private function sameName(string $a, string $b): bool
+    {
+        $normalize = fn (string $s) => mb_strtolower(preg_replace('/\s+/', ' ', trim($s)));
+
+        return $normalize($a) === $normalize($b);
     }
 }

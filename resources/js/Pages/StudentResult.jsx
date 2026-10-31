@@ -1,10 +1,11 @@
 import React from 'react';
+import { formatDuration } from '../format';
 import { useLocation } from 'react-router-dom';
 import { Trophy, CheckCircle2, XCircle, Clock, AlertCircle } from 'lucide-react';
 
 export default function StudentResult() {
     const location = useLocation();
-    const { result, quiz, studentAnswers } = location.state || {};
+    const { result, quiz, studentAnswers, remainingAttempts } = location.state || {};
 
     if (!result || !quiz) return (
         <div className="min-h-screen flex justify-center items-center bg-gray-50 p-6">
@@ -47,7 +48,12 @@ export default function StudentResult() {
                             <div className={`text-6xl sm:text-7xl font-black ${result.score >= 70 ? 'text-green-500' : 'text-red-500'}`}>{result.score}</div>
                         </div>
 
-                        <p className="text-xs sm:text-sm font-bold text-gray-700 mb-6 sm:mb-8 px-2">{getFeedbackMessage()}</p>
+                        <p className={`text-xs sm:text-sm font-bold text-gray-700 px-2 ${remainingAttempts != null ? 'mb-2' : 'mb-6 sm:mb-8'}`}>{getFeedbackMessage()}</p>
+                        {remainingAttempts != null && (
+                            <p className="text-xs font-semibold text-gray-500 mb-6 sm:mb-8">
+                                {remainingAttempts > 0 ? `Sisa kesempatan mengerjakan: ${remainingAttempts} kali` : 'Kesempatan mengerjakan kuis ini sudah habis.'}
+                            </p>
+                        )}
 
                         <div className="grid grid-cols-3 gap-2 sm:gap-6">
                             <div className="bg-green-50 rounded-xl p-3 sm:p-4 flex flex-col items-center border border-green-100">
@@ -62,7 +68,7 @@ export default function StudentResult() {
                             </div>
                             <div className="bg-blue-50 rounded-xl p-3 sm:p-4 flex flex-col items-center border border-blue-100">
                                 <Clock className="text-blue-500 mb-1" size={20} />
-                                <span className="text-base sm:text-xl font-black text-blue-700 mt-0.5">{Math.floor(result.time_spent_seconds / 60)}m {result.time_spent_seconds % 60}s</span>
+                                <span className="text-base sm:text-xl font-black text-blue-700 mt-0.5">{formatDuration(result.time_spent_seconds)}</span>
                                 <span className="text-[10px] sm:text-xs font-bold text-blue-600 uppercase mt-1">Waktu</span>
                             </div>
                         </div>

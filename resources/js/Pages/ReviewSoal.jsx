@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
 import { Sparkles, ArrowRight, Edit3, Trash2, Check, X } from 'lucide-react';
+import { attemptLabel } from '../attempts';
 
 export default function ReviewSoal() {
     const location = useLocation();
@@ -71,7 +72,8 @@ export default function ReviewSoal() {
                 state: { quiz: response.data.quiz } 
             });
         } catch (error) {
-            alert("Gagal menyimpan kuis. Silakan coba lagi.");
+            const errors = error.response?.data?.errors;
+            alert(errors ? Object.values(errors).flat()[0] : "Gagal menyimpan kuis. Silakan coba lagi.");
             setIsPublishing(false);
         }
     };
@@ -94,10 +96,11 @@ export default function ReviewSoal() {
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                     <span className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-green-50 text-green-700 font-bold text-xs sm:text-sm rounded-full">{questions.length} soal</span>
                     <span className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-white border border-gray-200 text-gray-600 font-semibold text-xs sm:text-sm rounded-full">{quizInfo.mapel}</span>
+                    <span className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-white border border-gray-200 text-gray-600 font-semibold text-xs sm:text-sm rounded-full">Kesempatan: {attemptLabel(quizInfo.max_attempts)}</span>
                     
-                    {quizInfo.student_id && (
+                    {quizInfo.target_student_id && (
                         <span className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-blue-50 border border-blue-200 text-blue-700 font-bold text-xs sm:text-sm rounded-full flex items-center gap-1.5 shadow-sm">
-                            <Sparkles size={14} className="text-blue-600" /> Kuis Personal (Adaptive)
+                            <Sparkles size={14} className="text-blue-600" /> Kuis Personal: {quizInfo.target_name}
                         </span>
                     )}
                 </div>

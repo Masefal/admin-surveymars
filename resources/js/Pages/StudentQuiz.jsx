@@ -11,6 +11,7 @@ export default function StudentQuiz() {
     const [quiz, setQuiz] = useState(location.state?.quiz || null);
     const studentId = location.state?.studentId || null;
     const studentName = location.state?.studentName || '';
+    const nisn = location.state?.nisn || '';
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState({});
@@ -44,31 +45,24 @@ export default function StudentQuiz() {
     const handleOptionSelect = (optionId) => setAnswers({ ...answers, [quiz.questions[currentQuestionIndex].id]: optionId });
 
     const handleSubmit = async () => {
+        if (isSubmitting) return;
         setIsSubmitting(true);
-        let correctCount = 0; let wrongCount = 0;
-        const answersData = [];
 
-        quiz.questions.forEach(q => {
-            const selectedOptionId = answers[q.id];
-            const selectedOption = q.options.find(o => o.id === selectedOptionId);
-            if (selectedOption?.is_correct) correctCount++; else wrongCount++;
-            answersData.push({ question_id: q.id, question_text: q.question_text, selected_option_id: selectedOptionId || null, is_correct: !!selectedOption?.is_correct });
-        });
-
+        // Skor dihitung di server; browser hanya mengirim pilihan jawaban
         const timeSpent = (quiz.time_limit_minutes * 60) - timeRemaining;
         const payload = {
-            student_id: studentId, student_name: studentName,
-            score: Math.round((correctCount / quiz.questions.length) * 100),
-            correct_answers: correctCount, wrong_answers: wrongCount,
+            student_id: studentId,
+            nisn,
             time_spent_seconds: timeSpent > 0 ? timeSpent : 0,
-            answers_data: answersData
+            answers: quiz.questions.map(q => ({ question_id: q.id, option_id: answers[q.id] || null }))
         };
 
         try {
-            await axios.post(`/api/student/quiz/${quizId}/submit`, payload);
-            navigate(`/q/${quizId}/result`, { state: { result: payload, quiz, studentAnswers: answers } });
+            const response = await axios.post(`/api/student/quiz/${quizId}/submit`, payload);
+            navigate(`/q/${quizId}/result`, { state: { result: response.data.result, quiz: response.data.review, studentAnswers: answers, remainingAttempts: response.data.remaining_attempts } });
         } catch (error) {
-            alert('Gagal mengirimkan kuis.');
+            const errors = error.response?.data?.errors;
+            alert((errors && Object.values(errors).flat()[0]) || error.response?.data?.error || 'Gagal mengirimkan kuis.');
             setIsSubmitting(false);
         }
     };

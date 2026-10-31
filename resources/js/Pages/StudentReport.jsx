@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatDuration } from '../format';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
@@ -84,7 +85,7 @@ export default function StudentReport() {
                                     <td className="p-4 text-gray-600">{res.quiz?.subject?.name || '-'}</td>
                                     <td className="p-4 text-center text-gray-500">
                                         <div className="flex items-center justify-center gap-1.5">
-                                            <Clock size={14}/> {Math.floor(res.time_spent_seconds / 60)}m {res.time_spent_seconds % 60}s
+                                            <Clock size={14}/> {formatDuration(res.time_spent_seconds)}
                                         </div>
                                     </td>
                                     <td className="p-4 text-right">

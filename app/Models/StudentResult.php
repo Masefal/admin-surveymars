@@ -8,6 +8,13 @@ class StudentResult extends Model
 {
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'answers_data' => 'array',
+        ];
+    }
+
     public function quiz()
     {
         return $this->belongsTo(Quiz::class);

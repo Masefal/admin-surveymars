@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { BookOpen, Clock, Loader2, PlayCircle, User } from 'lucide-react';
+import { BookOpen, Clock, KeyRound, Loader2, PlayCircle, RotateCcw, User } from 'lucide-react';
 
 export default function StudentLanding() {
     const { quizId } = useParams();
@@ -11,6 +11,9 @@ export default function StudentLanding() {
     const [loading, setLoading] = useState(true);
     const [selectedStudent, setSelectedStudent] = useState('');
     const [error, setError] = useState('');
+    const [nisn, setNisn] = useState('');
+    const [verifying, setVerifying] = useState(false);
+    const [verifyError, setVerifyError] = useState('');
 
     useEffect(() => {
         axios.get(`/api/student/quiz/${quizId}`)
@@ -25,15 +28,24 @@ export default function StudentLanding() {
             });
     }, [quizId]);
 
-    const handleStart = () => {
-        if (!selectedStudent) {
-            alert('Silakan pilih nama Anda terlebih dahulu!');
+    const handleStart = async () => {
+        if (!selectedStudent || !nisn) {
+            alert('Silakan pilih nama dan isi NISN kamu terlebih dahulu!');
             return;
         }
-        const studentData = students.find(s => s.id.toString() === selectedStudent);
-        navigate(`/q/${quizId}/play`, { 
-            state: { quiz, studentId: studentData.id, studentName: studentData.name } 
-        });
+        setVerifying(true);
+        setVerifyError('');
+        try {
+            const response = await axios.post(`/api/student/quiz/${quizId}/verify`, { student_id: selectedStudent, nisn });
+            const student = response.data.student;
+            navigate(`/q/${quizId}/play`, {
+                state: { quiz, studentId: student.id, studentName: student.name, nisn }
+            });
+        } catch (err) {
+            const errors = err.response?.data?.errors;
+            setVerifyError((errors && Object.values(errors).flat()[0]) || err.response?.data?.error || 'Gagal memverifikasi. Coba lagi.');
+            setVerifying(false);
+        }
     };
 
     if (loading) return <div className="min-h-screen flex justify-center items-center bg-gray-50"><Loader2 className="animate-spin text-[#1b6d39]" size={40} /></div>;
@@ -78,6 +90,11 @@ export default function StudentLanding() {
                             <div className="flex items-center gap-1.5 sm:gap-2 bg-gray-50 px-3 sm:px-4 py-2 rounded-xl border border-gray-100 text-xs sm:text-sm">
                                 <Clock size={16} className="text-orange-500" /> <span className="font-bold text-gray-700">{quiz.time_limit_minutes} Menit</span>
                             </div>
+                            {quiz.max_attempts && (
+                                <div className="flex items-center gap-1.5 sm:gap-2 bg-gray-50 px-3 sm:px-4 py-2 rounded-xl border border-gray-100 text-xs sm:text-sm">
+                                    <RotateCcw size={16} className="text-teal-500" /> <span className="font-bold text-gray-700">Kesempatan {quiz.max_attempts}x</span>
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-4">
@@ -93,11 +110,22 @@ export default function StudentLanding() {
                                     {students.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                 </select>
                             </div>
-                            <button 
-                                onClick={handleStart} disabled={!selectedStudent}
+                            <div>
+                                <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-gray-700 mb-2">
+                                    <KeyRound size={16} /> NISN Kamu
+                                </label>
+                                <input
+                                    type="text" inputMode="numeric" value={nisn} onChange={(e) => setNisn(e.target.value)}
+                                    placeholder="Ketik NISN kamu"
+                                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 sm:py-3.5 focus:border-[#1b6d39] focus:ring-0 outline-none transition-colors bg-white font-medium text-gray-700 text-sm tracking-widest"
+                                />
+                            </div>
+                            {verifyError && <p className="text-xs sm:text-sm font-bold text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{verifyError}</p>}
+                            <button
+                                onClick={handleStart} disabled={!selectedStudent || !nisn || verifying}
                                 className="w-full bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm sm:text-base shadow-sm"
                             >
-                                <PlayCircle size={18} /> Mulai Mengerjakan
+                                {verifying ? <Loader2 className="animate-spin" size={18} /> : <PlayCircle size={18} />} Mulai Mengerjakan
                             </button>
                         </div>
                     </div>

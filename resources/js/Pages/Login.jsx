@@ -8,7 +8,7 @@ export default function Login() {
     const [isRegister, setIsRegister] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'guru' });
+    const [formData, setFormData] = useState({ name: '', email: '', password: '' });
 
     useEffect(() => {
         if (localStorage.getItem('token')) {
@@ -60,13 +60,9 @@ export default function Login() {
                                     <label className="block text-sm font-bold text-gray-900 mb-2">Nama Lengkap</label>
                                     <input type="text" name="name" required placeholder="Misal: Bu Siti atau Pak Budi" onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] outline-none" />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-900 mb-2">Mendaftar Sebagai</label>
-                                    <select name="role" value={formData.role} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] outline-none">
-                                        <option value="guru">Guru</option>
-                                        <option value="orang_tua">Orang Tua</option>
-                                    </select>
-                                </div>
+                                <p className="text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-xl p-3">
+                                    Pendaftaran ini untuk akun <strong>Orang Tua</strong>. Akun guru dibuatkan oleh pihak sekolah.
+                                </p>
                             </>
                         )}
                         <div>

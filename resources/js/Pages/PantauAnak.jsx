@@ -1,26 +1,27 @@
 import React, { useState, useEffect } from 'react';
+import { formatDuration } from '../format';
 import axios from 'axios';
 import { Link as LinkIcon, AlertCircle, Loader2, User, FileText, CheckCircle2, XCircle, Clock, BarChart2, TrendingDown, Award } from 'lucide-react';
 import AdminLayout from '../Layouts/AdminLayout';
 
 export default function PantauAnak() {
+    const [children, setChildren] = useState([]);
     const [student, setStudent] = useState(null);
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isLinking, setIsLinking] = useState(false);
+    const [showLinkForm, setShowLinkForm] = useState(false);
     const [nisn, setNisn] = useState('');
+    const [childName, setChildName] = useState('');
     const [error, setError] = useState('');
 
-    const fetchLinkedStudent = async () => {
+    const fetchLinkedStudent = async (studentId = null) => {
         setLoading(true);
         try {
-            const response = await axios.get('/api/parent/linked-student');
-            if (response.data && response.data.student) {
-                setStudent(response.data.student);
-                setResults(response.data.results || []);
-            } else {
-                setStudent(null);
-            }
+            const response = await axios.get('/api/parent/linked-student', { params: studentId ? { student_id: studentId } : {} });
+            setChildren(response.data?.students || []);
+            setStudent(response.data?.student || null);
+            setResults(response.data?.results || []);
         } catch (err) {
             setStudent(null);
         } finally {
@@ -38,13 +39,57 @@ export default function PantauAnak() {
         setError('');
 
         try {
-            await axios.post('/api/parent/link', { nisn: nisn });
-            fetchLinkedStudent();
+            const response = await axios.post('/api/parent/link', { nisn, name: childName });
+            setNisn('');
+            setChildName('');
+            setShowLinkForm(false);
+            setIsLinking(false);
+            fetchLinkedStudent(response.data?.student?.id);
         } catch (err) {
-            setError(err.response?.data?.message || 'Gagal menghubungkan. Pastikan NISN benar dan terdaftar.');
+            setError(err.response?.data?.message || 'Gagal menghubungkan. Pastikan NISN dan nama lengkap benar.');
             setIsLinking(false);
         }
     };
+
+    const linkForm = (
+        <form onSubmit={handleLinkStudent} className="max-w-sm mx-auto">
+            {error && (
+                <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-4 flex items-center gap-2 text-sm font-bold text-left">
+                    <AlertCircle size={18} className="shrink-0" /> {error}
+                </div>
+            )}
+            <div className="mb-3">
+                <input
+                    type="text"
+                    value={nisn}
+                    onChange={(e) => setNisn(e.target.value)}
+                    placeholder="Masukkan NISN Anak"
+                    required
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] focus:ring-0 outline-none font-medium text-gray-700 text-center tracking-widest"
+                />
+            </div>
+            <div className="mb-3">
+                <input
+                    type="text"
+                    value={childName}
+                    onChange={(e) => setChildName(e.target.value)}
+                    placeholder="Nama Lengkap Anak (sesuai data sekolah)"
+                    required
+                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] focus:ring-0 outline-none font-medium text-gray-700 text-center"
+                />
+            </div>
+            <p className="text-xs text-gray-400 mb-5">
+                💡 Lupa atau tidak tahu NISN? Anda dapat hubungi Wali Kelas.
+            </p>
+            <button
+                type="submit"
+                disabled={isLinking || !nisn || !childName}
+                className="w-full bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold py-3.5 rounded-xl flex justify-center items-center gap-2 transition-all disabled:opacity-50"
+            >
+                {isLinking ? <Loader2 className="animate-spin" size={20} /> : 'Hubungkan Sekarang'}
+            </button>
+        </form>
+    );
 
     const getAcademicStats = () => {
         if (!results.length) return { average: 0, weakSubjects: [] };
@@ -98,40 +143,37 @@ export default function PantauAnak() {
                     </div>
                     <h2 className="text-2xl font-black text-gray-900 mb-3">Hubungkan Data Anak</h2>
                     <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                        Anda belum menghubungkan data peserta didik ke akun Anda. Silakan masukkan NISN anak Anda untuk melihat laporan nilai.
+                        Anda belum menghubungkan data peserta didik ke akun Anda. Silakan masukkan NISN dan nama lengkap anak Anda untuk melihat laporan nilai.
                     </p>
 
-                    {error && (
-                        <div className="bg-red-50 text-red-600 p-4 rounded-xl mb-6 flex items-center gap-2 text-sm font-bold text-left">
-                            <AlertCircle size={18} className="shrink-0" /> {error}
-                        </div>
-                    )}
-
-                    <form onSubmit={handleLinkStudent} className="max-w-sm mx-auto">
-                        <div className="mb-3">
-                            <input
-                                type="text"
-                                value={nisn}
-                                onChange={(e) => setNisn(e.target.value)}
-                                placeholder="Masukkan NISN Anak"
-                                required
-                                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] focus:ring-0 outline-none font-medium text-gray-700 text-center tracking-widest"
-                            />
-                        </div>
-                        <p className="text-xs text-gray-400 mb-5">
-                            💡 Lupa atau tidak tahu NISN? Anda dapat melihatnya pada buku Rapor anak, atau silakan hubungi Wali Kelas.
-                        </p>
-                        <button
-                            type="submit"
-                            disabled={isLinking || !nisn}
-                            className="w-full bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold py-3.5 rounded-xl flex justify-center items-center gap-2 transition-all disabled:opacity-50"
-                        >
-                            {isLinking ? <Loader2 className="animate-spin" size={20} /> : 'Hubungkan Sekarang'}
-                        </button>
-                    </form>
+                    {linkForm}
                 </div>
             ) : (
                 <div className="space-y-6">
+                    <div className="flex flex-wrap items-center gap-2">
+                        {children.map(child => (
+                            <button
+                                key={child.id}
+                                onClick={() => fetchLinkedStudent(child.id)}
+                                className={`px-4 py-2 rounded-xl text-sm font-bold border transition-colors ${child.id === student.id ? 'bg-[#1b6d39] border-[#1b6d39] text-white' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+                            >
+                                {child.name}
+                            </button>
+                        ))}
+                        <button
+                            onClick={() => { setShowLinkForm(!showLinkForm); setError(''); }}
+                            className="px-4 py-2 rounded-xl text-sm font-bold border border-dashed border-gray-300 text-gray-500 hover:bg-gray-50"
+                        >
+                            {showLinkForm ? 'Batal' : '+ Tambah Anak'}
+                        </button>
+                    </div>
+
+                    {showLinkForm && (
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+                            {linkForm}
+                        </div>
+                    )}
+
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6">
                         <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center shrink-0 border-4 border-blue-100">
                             <User className="text-blue-500" size={32} />
@@ -216,7 +258,7 @@ export default function PantauAnak() {
                                                     <div className="flex items-center justify-center gap-3">
                                                         <span className="flex items-center gap-1 text-green-600 font-bold"><CheckCircle2 size={16}/> {result.correct_answers}</span>
                                                         <span className="flex items-center gap-1 text-red-500 font-bold"><XCircle size={16}/> {result.wrong_answers}</span>
-                                                        <span className="flex items-center gap-1 text-blue-500 font-bold"><Clock size={16}/> {Math.floor(result.time_spent_seconds / 60)}m</span>
+                                                        <span className="flex items-center gap-1 text-blue-500 font-bold"><Clock size={16}/> {formatDuration(result.time_spent_seconds)}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right text-xs font-medium text-gray-400">
