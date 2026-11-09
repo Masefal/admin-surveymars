@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import AdminLayout from '../Layouts/AdminLayout';
 import { MessageCircle, QrCode, Link as LinkIcon, Check } from 'lucide-react';
+import QrShareModal from '../Components/QrShareModal';
 
 export default function QuizDibagikan() {
     const location = useLocation();
     const { quiz } = location.state || {};
     const [copied, setCopied] = useState(false);
+    const [showQr, setShowQr] = useState(false);
     
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userName = user.name || 'Admin';
@@ -40,9 +42,7 @@ export default function QuizDibagikan() {
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
     };
 
-    const handleQR = () => {
-        alert(`Tampilkan QR Code untuk link:\n${shareUrl}`);
-    };
+    const handleQR = () => setShowQr(true);
 
     return (
         <AdminLayout>
@@ -137,6 +137,10 @@ export default function QuizDibagikan() {
                     </div>
                 </div>
             </div>
+
+            {showQr && quiz && (
+                <QrShareModal url={shareUrl} title={quiz.title} code={quiz.share_code} onClose={() => setShowQr(false)} />
+            )}
         </AdminLayout>
     );
 }
