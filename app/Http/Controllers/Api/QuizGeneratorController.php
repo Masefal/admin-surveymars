@@ -32,6 +32,13 @@ class QuizGeneratorController extends Controller
             ->when($request->filled('subject_id'), fn ($q) => $q->where('subject_id', $request->subject_id))
             ->get();
 
+        // Kalau mapel sudah punya materi, kuis wajib terikat ke materi supaya nilai bisa dianalisis per materi
+        if ($materials->isEmpty() && $request->filled('subject_id') && Material::where('subject_id', $request->subject_id)->exists()) {
+            return response()->json([
+                'error' => 'Pilih minimal satu materi supaya hasil kuis bisa dianalisis per materi.',
+            ], 422);
+        }
+
         $deskripsi = $request->deskripsi ?? 'Tidak ada konteks tambahan.';
 
         $studentId = $request->student_id;

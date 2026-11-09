@@ -83,6 +83,27 @@ export default function GenerateQuiz() {
         });
     };
 
+    // Nama kuis mengikuti materi yang dipilih sampai guru/ortu mengetik nama sendiri
+    const [topicTouched, setTopicTouched] = useState(false);
+    useEffect(() => {
+        if (topicTouched) return;
+        const names = materials.filter(m => formData.material_ids.includes(m.id)).map(m => m.name);
+        let auto = names.join(', ');
+        if (isRemedial) auto = names.length ? `Remedial ${auto}` : `Remedial ${remedial.title}`;
+        setFormData(prev => (prev.topic === auto.slice(0, 255) ? prev : { ...prev, topic: auto.slice(0, 255) }));
+    }, [formData.material_ids, materials, topicTouched]);
+
+    // Remedial: langsung pilih materi yang nilainya rendah untuk siswa ini di mapel yang sama
+    const [remedialPrefilled, setRemedialPrefilled] = useState(false);
+    useEffect(() => {
+        if (!isRemedial || remedialPrefilled || loading) return;
+        const student = students.find(s => s.id === parseInt(remedial.student.student_id));
+        const subjectMaterialIds = new Set(materials.filter(m => m.subject_id === parseInt(remedial.subjectId)).map(m => m.id));
+        const weakIds = (student?.needs_attention || []).map(w => w.material_id).filter(id => subjectMaterialIds.has(id));
+        if (weakIds.length) setFormData(prev => ({ ...prev, material_ids: weakIds }));
+        setRemedialPrefilled(true);
+    }, [isRemedial, remedialPrefilled, loading, students, materials]);
+
     const toggleMaterial = (id) => {
         setFormData(prev => ({
             ...prev,
@@ -123,6 +144,10 @@ export default function GenerateQuiz() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (materialMissing) {
+            setError('Pilih minimal satu materi supaya hasil kuis bisa dianalisis per materi.');
+            return;
+        }
         setIsGenerating(true);
         setError('');
 
@@ -170,6 +195,10 @@ export default function GenerateQuiz() {
     const filteredStudents = students.filter(s => s.student_class_id === parseInt(formData.class_id));
     const selectedSubject = subjects.find(s => s.id === parseInt(formData.subject_id));
     const subjectMaterials = materials.filter(m => m.subject_id === parseInt(formData.subject_id));
+    // Materi wajib supaya nilai bisa dianalisis per materi. Orang tua tidak bisa membuat materi,
+    // jadi untuk mapel yang belum punya materi mereka tetap boleh lanjut dengan nama kuis saja.
+    const materialRequired = !!formData.subject_id && (subjectMaterials.length > 0 || !isParent);
+    const materialMissing = materialRequired && formData.material_ids.length === 0;
 
     // Materi bernilai rendah (< KKM) milik siswa target, atau seluruh siswa kelas bila kuis untuk kelas
     const weakMaterials = useMemo(() => {
@@ -360,7 +389,7 @@ export default function GenerateQuiz() {
                     {formData.subject_id && (subjectMaterials.length > 0 || !isParent) && (
                         <div>
                             <label className="flex flex-wrap items-center gap-x-2 text-sm font-bold text-gray-700 mb-2">
-                                <Layers size={18} className="text-indigo-500" /> Materi <span className="font-medium text-gray-400">(opsional, jadi acuan AI dan analisis per materi)</span>
+                                <Layers size={18} className="text-indigo-500" /> Materi Kuis {materialRequired && <span className="text-red-500">*</span>} <span className="font-medium text-gray-400">(acuan soal AI dan dasar analisis nilai per materi)</span>
                             </label>
                             {subjectMaterials.length === 0 && !showNewMaterial && (
                                 <p className="text-xs text-gray-500 mb-2">Belum ada materi untuk mapel ini. Tambahkan supaya soal mengikuti kisi-kisi Anda.</p>
@@ -376,6 +405,9 @@ export default function GenerateQuiz() {
                                     </label>
                                 ))}
                             </div>
+                            {materialMissing && subjectMaterials.length > 0 && (
+                                <p className="mt-2 text-xs font-semibold text-red-600">Pilih minimal satu materi. Nilai siswa akan tercatat per materi ini.</p>
+                            )}
 
                             {!isParent && (showNewMaterial ? (
                                 <div className="mt-3 border-2 border-dashed border-indigo-200 bg-indigo-50/40 rounded-xl p-3 sm:p-4 space-y-2">
@@ -414,17 +446,21 @@ export default function GenerateQuiz() {
 
                     <div>
                         <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
-                            <FileText size={18} className="text-orange-500" /> Topik Kuis (Nama Kuis)
+                            <FileText size={18} className="text-orange-500" /> Nama Kuis
                         </label>
                         <input
                             type="text"
                             name="topic"
                             value={formData.topic}
-                            onChange={handleChange}
+                            onChange={(e) => { setTopicTouched(e.target.value.trim() !== ''); handleChange(e); }}
                             required
-                            placeholder="Contoh: Bangun Datar dan Ruang"
+                            maxLength={255}
+                            placeholder={materialRequired ? 'Terisi otomatis dari materi yang dipilih' : 'Contoh: Bangun Datar dan Ruang'}
                             className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-[#1b6d39] focus:ring-0 outline-none font-medium text-gray-700"
                         />
+                        {materialRequired && (
+                            <p className="text-xs text-gray-400 mt-1.5">Otomatis mengikuti materi. Boleh diganti, misalnya "Latihan Daily Test SBdP".</p>
+                        )}
                     </div>
 
                     <div>
@@ -475,7 +511,7 @@ export default function GenerateQuiz() {
                     <div className="pt-4 border-t border-gray-100">
                         <button
                             type="submit"
-                            disabled={isGenerating || !formData.class_id || !formData.subject_id}
+                            disabled={isGenerating || !formData.class_id || !formData.subject_id || materialMissing}
                             className="w-full bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 transition-all disabled:opacity-50 shadow-sm"
                         >
                             {isGenerating ? (

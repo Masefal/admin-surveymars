@@ -97,6 +97,16 @@ class MaterialPerformanceTest extends TestCase
         $this->assertSame(0, Question::whereNotNull('material_id')->where('material_id', $this->egrang->id)->count());
     }
 
+    public function test_generate_wajib_memilih_materi_jika_mapel_punya_materi(): void
+    {
+        Sanctum::actingAs($this->guru);
+
+        $this->postJson('/api/generate-quiz', [
+            'mapel' => 'SBdP', 'subject_id' => $this->mapel->id, 'kelas' => 'Kelas 4',
+            'topik' => 'Latihan', 'jumlah_soal' => 5,
+        ])->assertStatus(422)->assertJsonFragment(['error' => 'Pilih minimal satu materi supaya hasil kuis bisa dianalisis per materi.']);
+    }
+
     public function test_simpan_kuis_menyimpan_materi_per_soal(): void
     {
         Sanctum::actingAs($this->guru);
