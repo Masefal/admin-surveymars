@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../Layouts/AdminLayout';
 import { Users, Loader2, BarChart2, Plus, X } from 'lucide-react';
+import { NeedsAttentionNote, PASSING_PERCENT } from '../Components/MaterialPerformance';
 
 export default function StudentManagement() {
     const [students, setStudents] = useState([]);
@@ -81,11 +82,11 @@ export default function StudentManagement() {
                     <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-1 flex items-center gap-2">
                         <Users className="text-[#1b6d39]" /> Kelola Siswa
                     </h1>
-                    <p className="text-sm sm:text-base text-gray-500">Daftar siswa dan pantauan analitik individu.</p>
+                    <p className="text-sm sm:text-base text-gray-500">Daftar siswa dan performa per materi. Materi dengan ketuntasan di bawah {PASSING_PERCENT}% ditandai perlu perhatian khusus.</p>
                 </div>
                 <button 
                     onClick={() => setShowModal(true)}
-                    className="bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 transition-colors text-sm sm:text-base shadow-sm"
+                    className="bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 transition-colors text-sm sm:text-base shadow-sm whitespace-nowrap shrink-0"
                 >
                     <Plus size={20} /> Tambah Siswa
                 </button>
@@ -97,31 +98,58 @@ export default function StudentManagement() {
                         <Loader2 className="animate-spin text-[#1b6d39]" size={32} />
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <>
+                    {/* Layar kecil: kartu per siswa supaya tidak perlu geser ke samping */}
+                    <ul className="md:hidden divide-y divide-gray-100">
+                        {students.length > 0 ? students.map((student) => (
+                            <li key={student.id} className="p-4 space-y-3">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <div className="font-bold text-gray-900 break-words">{student.name}</div>
+                                        <div className="text-xs text-gray-500 mt-0.5">NISN {student.nisn || '-'} · {student.student_class?.name || '-'}</div>
+                                    </div>
+                                    <Link
+                                        to={`/students/${student.id}/report`}
+                                        className="shrink-0 inline-flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg font-bold text-xs whitespace-nowrap"
+                                    >
+                                        <BarChart2 size={14} /> Rapor
+                                    </Link>
+                                </div>
+                                <NeedsAttentionNote items={student.needs_attention || []} hasData={(student.material_performance || []).length > 0} />
+                            </li>
+                        )) : (
+                            <li className="p-8 text-center text-gray-400 text-sm">Tidak ada data siswa ditemukan.</li>
+                        )}
+                    </ul>
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm text-left text-gray-500">
                             <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <th scope="col" className="px-6 py-4">NISN</th>
-                                    <th scope="col" className="px-6 py-4">Nama Siswa</th>
-                                    <th scope="col" className="px-6 py-4">Kelas</th>
-                                    <th scope="col" className="px-6 py-4 text-right">Analisis</th>
+                                    <th scope="col" className="px-4 lg:px-6 py-4 whitespace-nowrap">NISN</th>
+                                    <th scope="col" className="px-4 lg:px-6 py-4 whitespace-nowrap">Nama Siswa</th>
+                                    <th scope="col" className="px-4 lg:px-6 py-4 whitespace-nowrap">Kelas</th>
+                                    <th scope="col" className="px-4 lg:px-6 py-4 min-w-[240px]">Materi Perlu Perhatian</th>
+                                    <th scope="col" className="px-4 lg:px-6 py-4 text-right">Analisis</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {Array.isArray(students) && students.length > 0 ? (
                                     students.map((student) => (
                                         <tr key={student.id} className="bg-white border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                            <td className="px-6 py-4 font-medium text-gray-600">{student.nisn || '-'}</td>
-                                            <td className="px-6 py-4 font-bold text-gray-900">{student.name}</td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-4 lg:px-6 py-4 font-medium text-gray-600 whitespace-nowrap">{student.nisn || '-'}</td>
+                                            <td className="px-4 lg:px-6 py-4 font-bold text-gray-900 min-w-[140px]">{student.name}</td>
+                                            <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                                                 <span className="bg-green-50 text-green-700 px-2.5 py-1 rounded-md text-xs font-semibold border border-green-100">
                                                     {student.student_class?.name || '-'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-4 lg:px-6 py-4">
+                                                <NeedsAttentionNote items={student.needs_attention || []} hasData={(student.material_performance || []).length > 0} />
+                                            </td>
+                                            <td className="px-4 lg:px-6 py-4 text-right">
                                                 <Link 
                                                     to={`/students/${student.id}/report`}
-                                                    className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg font-bold transition-colors text-xs"
+                                                    className="whitespace-nowrap inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 px-3 py-1.5 rounded-lg font-bold transition-colors text-xs"
                                                 >
                                                     <BarChart2 size={16} /> Lihat Rapor
                                                 </Link>
@@ -130,7 +158,7 @@ export default function StudentManagement() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="4" className="px-6 py-8 text-center text-gray-400">
+                                        <td colSpan="5" className="px-6 py-8 text-center text-gray-400">
                                             Tidak ada data siswa ditemukan.
                                         </td>
                                     </tr>
@@ -138,6 +166,7 @@ export default function StudentManagement() {
                             </tbody>
                         </table>
                     </div>
+                    </>
                 )}
             </div>
 

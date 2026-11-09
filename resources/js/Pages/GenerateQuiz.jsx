@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { Sparkles, Loader2, BookOpen, Users, FileText, Target, ListOrdered, AlertCircle, RotateCcw, Lock } from 'lucide-react';
+import { Sparkles, Loader2, BookOpen, Users, FileText, Target, ListOrdered, AlertCircle, RotateCcw, Lock, AlertTriangle, Layers } from 'lucide-react';
+import { PASSING_PERCENT } from '../Components/MaterialPerformance';
 import AdminLayout from '../Layouts/AdminLayout';
 import { ATTEMPT_OPTIONS } from '../attempts';
 
@@ -13,6 +14,7 @@ export default function GenerateQuiz() {
     const [classes, setClasses] = useState([]);
     const [subjects, setSubjects] = useState([]);
     const [students, setStudents] = useState([]);
+    const [materials, setMaterials] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState('');
@@ -29,6 +31,7 @@ export default function GenerateQuiz() {
         target_student_id: remedial?.student?.student_id || '',
         topic: remedial ? `Remedial ${remedial.title}` : '',
         context: '',
+        material_ids: [],
         num_questions: 5,
         max_attempts: '1'
     });
@@ -44,6 +47,7 @@ export default function GenerateQuiz() {
                 const masterData = masterRes.data;
                 setClasses(Array.isArray(masterData.classes) ? masterData.classes : (Array.isArray(masterData) ? masterData : []));
                 setSubjects(Array.isArray(masterData.subjects) ? masterData.subjects : []);
+                setMaterials(Array.isArray(masterData.materials) ? masterData.materials : []);
                 
                 const studentData = studentsRes.data;
                 const fetchedStudents = Array.isArray(studentData) ? studentData : (Array.isArray(studentData.data) ? studentData.data : []);
@@ -70,12 +74,20 @@ export default function GenerateQuiz() {
         setFormData(prev => {
             const next = { ...prev, [name]: value };
             if (name === 'class_id' && !isParent) next.target_student_id = '';
+            if (name === 'subject_id') next.material_ids = [];
             // Untuk orang tua, kelas selalu mengikuti anak yang dipilih
             if (name === 'target_student_id' && isParent) {
                 next.class_id = students.find(s => s.id === parseInt(value))?.student_class_id || '';
             }
             return next;
         });
+    };
+
+    const toggleMaterial = (id) => {
+        setFormData(prev => ({
+            ...prev,
+            material_ids: prev.material_ids.includes(id) ? prev.material_ids.filter(m => m !== id) : [...prev.material_ids, id]
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -97,6 +109,7 @@ export default function GenerateQuiz() {
                 topik: formData.topic,
                 deskripsi: formData.context,
                 jumlah_soal: parseInt(formData.num_questions),
+                material_ids: formData.material_ids,
                 student_id: target?.id || null
             });
 
@@ -111,7 +124,8 @@ export default function GenerateQuiz() {
                         deskripsi: formData.context,
                         max_attempts: formData.max_attempts ? parseInt(formData.max_attempts) : null,
                         mapel: subject?.name,
-                        kelas: studentClass?.name
+                        kelas: studentClass?.name,
+                        materials: subjectMaterials.filter(m => formData.material_ids.includes(m.id)).map(m => ({ id: m.id, name: m.name }))
                     },
                     generatedQuestions: response.data
                 }
@@ -123,6 +137,26 @@ export default function GenerateQuiz() {
     };
 
     const filteredStudents = students.filter(s => s.student_class_id === parseInt(formData.class_id));
+    const selectedSubject = subjects.find(s => s.id === parseInt(formData.subject_id));
+    const subjectMaterials = materials.filter(m => m.subject_id === parseInt(formData.subject_id));
+
+    // Materi bernilai rendah (< KKM) milik siswa target, atau seluruh siswa kelas bila kuis untuk kelas
+    const weakMaterials = useMemo(() => {
+        const targetId = parseInt(formData.target_student_id) || remedial?.student?.student_id;
+        let pool = [];
+        if (targetId) pool = students.filter(s => s.id === parseInt(targetId));
+        else if (formData.class_id) pool = students.filter(s => s.student_class_id === parseInt(formData.class_id));
+
+        const groups = {};
+        pool.forEach(s => (s.needs_attention || []).forEach(m => {
+            if (selectedSubject && m.subject !== selectedSubject.name) return;
+            const key = `${m.subject}|${m.material}`;
+            groups[key] ??= { material: m.material, material_id: m.material_id, subject: m.subject, students: [] };
+            groups[key].students.push({ name: s.name, percent: m.percent });
+        }));
+        return Object.values(groups).sort((a, b) => b.students.length - a.students.length);
+    }, [students, formData.target_student_id, formData.class_id, selectedSubject, remedial]);
+    const weakMaterialIds = new Set(weakMaterials.map(w => w.material_id).filter(Boolean));
 
     if (loading) {
         return (
@@ -169,6 +203,23 @@ export default function GenerateQuiz() {
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
+                    {weakMaterials.length > 0 && (
+                        <div role="alert" className="bg-amber-50 border border-amber-200 rounded-xl p-4 sm:p-5">
+                            <div className="flex items-center gap-2 font-bold text-amber-800 text-sm mb-1">
+                                <AlertTriangle size={18} /> Materi yang perlu dipersonalisasi / diremedialkan
+                            </div>
+                            <p className="text-xs text-amber-700 mb-3">Ketuntasan di bawah {PASSING_PERCENT}% pada kuis sebelumnya{selectedSubject ? ` (${selectedSubject.name})` : ''}.</p>
+                            <ul className="space-y-1.5">
+                                {weakMaterials.map((w, i) => (
+                                    <li key={i} className="text-sm text-gray-800">
+                                        <span className="font-bold">{w.material}</span>
+                                        <span className="text-gray-500"> · {w.subject || '-'} · </span>
+                                        <span className="text-gray-600">{w.students.map(st => `${st.name} (${st.percent}%)`).join(', ')}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                     
                     {isRemedial ? (
                         <div className="bg-orange-50/60 border border-orange-200 p-5 rounded-xl">
@@ -272,6 +323,25 @@ export default function GenerateQuiz() {
                                 <option value="">-- Pilih Mata Pelajaran --</option>
                                 {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
+                        </div>
+                    )}
+
+                    {subjectMaterials.length > 0 && (
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
+                                <Layers size={18} className="text-indigo-500" /> Materi <span className="font-medium text-gray-400">(opsional, jadi acuan AI dan analisis per materi)</span>
+                            </label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {subjectMaterials.map(m => (
+                                    <label key={m.id} className={`flex items-start gap-2 border-2 rounded-xl px-3 py-2.5 cursor-pointer text-sm ${formData.material_ids.includes(m.id) ? 'border-[#1b6d39] bg-green-50/50' : 'border-gray-200'}`}>
+                                        <input type="checkbox" className="mt-0.5 accent-[#1b6d39]" checked={formData.material_ids.includes(m.id)} onChange={() => toggleMaterial(m.id)} />
+                                        <span className="font-semibold text-gray-700">
+                                            {m.name}
+                                            {weakMaterialIds.has(m.id) && <span className="ml-1.5 text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded">perlu remedial</span>}
+                                        </span>
+                                    </label>
+                                ))}
+                            </div>
                         </div>
                     )}
 

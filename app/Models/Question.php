@@ -13,6 +13,11 @@ class Question extends Model
         return $this->belongsTo(Quiz::class);
     }
 
+    public function material()
+    {
+        return $this->belongsTo(Material::class);
+    }
+
     public function options()
     {
         return $this->hasMany(Option::class);

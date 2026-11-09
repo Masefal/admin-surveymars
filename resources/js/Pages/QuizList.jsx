@@ -128,7 +128,7 @@ export default function Quizzes() {
                                     <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase ${
                                         quiz.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                                     }`}>
-                                        {quiz.status === 'active' ? 'Aktif' : 'Selesai'}
+                                        {quiz.status === 'active' ? 'Aktif' : quiz.status === 'draft' ? 'Draf' : 'Selesai'}
                                     </span>
                                 </div>
                                 <h3 className="font-extrabold text-gray-900 text-lg mb-1 leading-tight">{quiz.title}</h3>

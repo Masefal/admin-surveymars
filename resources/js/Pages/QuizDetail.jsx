@@ -39,6 +39,15 @@ export default function QuizDetail() {
         fetchDetail();
     }, [id]);
 
+    const toggleStatus = async () => {
+        try {
+            const res = await axios.put(`/api/quizzes/${id}/status`);
+            setQuiz(prev => ({ ...prev, status: res.data.quiz.status }));
+        } catch (error) {
+            alert('Gagal mengubah status kuis.');
+        }
+    };
+
     const toggleRow = (idx) => setExpandedRow(expandedRow === idx ? null : idx);
 
     const updateAttempts = async (value) => {
@@ -163,6 +172,23 @@ export default function QuizDetail() {
                 <Link to="/quizzes" className="p-2 bg-white rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors"><ArrowLeft size={18} /></Link>
                 <div className="text-xs sm:text-sm font-medium text-gray-400">Beranda / Detail Quiz</div>
             </div>
+
+            {quiz.status !== 'active' && (
+                <div role="status" className="mb-4 sm:mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-2 text-sm text-amber-800">
+                        <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                        <span>
+                            <strong>{quiz.status === 'draft' ? 'Kuis masih draf.' : 'Kuis sudah ditutup.'}</strong>{' '}
+                            Siswa belum bisa mengerjakan. {quiz.status === 'draft' && quiz.can_manage ? 'Tinjau daftar soal dulu, lalu buka kuis sebelum tautannya dibagikan.' : ''}
+                        </span>
+                    </div>
+                    {quiz.can_manage && (
+                        <button onClick={toggleStatus} className="shrink-0 bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold text-sm px-4 py-2 rounded-lg">
+                            Buka Kuis
+                        </button>
+                    )}
+                </div>
+            )}
 
             <div className="bg-[#1b6d39] rounded-2xl p-6 sm:p-8 text-white mb-6 sm:mb-8 flex flex-col md:flex-row justify-between items-start md:items-center relative shadow-sm gap-4 sm:gap-6">
                 <div className="relative z-10">

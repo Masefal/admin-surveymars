@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Material;
+use App\Models\Question;
 use App\Models\StudentResult;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
@@ -21,7 +23,14 @@ class QuizGeneratorController extends Controller
             'jumlah_soal' => 'required|integer|min:1|max:20',
             'student_id' => 'nullable|exists:students,id',
             'subject_id' => 'nullable|exists:subjects,id',
+            'material_ids' => 'nullable|array|max:10',
+            'material_ids.*' => 'integer|exists:materials,id',
         ]);
+
+        // Materi yang dipilih harus milik mapel yang sama
+        $materials = Material::whereIn('id', $request->input('material_ids', []))
+            ->when($request->filled('subject_id'), fn ($q) => $q->where('subject_id', $request->subject_id))
+            ->get();
 
         $deskripsi = $request->deskripsi ?? 'Tidak ada konteks tambahan.';
 
@@ -46,16 +55,27 @@ class QuizGeneratorController extends Controller
                 })
                 ->latest()->take(20)->get();
 
+            $wrongAnswers = [];
             foreach ($history as $result) {
                 $answers = $result->answers_data;
                 if (is_array($answers)) {
                     foreach ($answers as $ans) {
                         if (isset($ans['is_correct']) && $ans['is_correct'] === false && isset($ans['question_text'])) {
-                            $wrongQuestions[] = $ans['question_text'];
+                            $wrongAnswers[] = $ans;
                         }
                     }
                 }
             }
+
+            // Personalisasi per materi: kalau materi dipilih, pakai kesalahan pada materi itu saja
+            if ($materials->isNotEmpty()) {
+                $inMaterial = Question::whereIn('id', collect($wrongAnswers)->pluck('question_id')->filter())
+                    ->whereIn('material_id', $materials->pluck('id'))
+                    ->pluck('id')->all();
+                $wrongAnswers = array_filter($wrongAnswers, fn ($a) => in_array($a['question_id'] ?? null, $inMaterial));
+            }
+
+            $wrongQuestions = array_column($wrongAnswers, 'question_text');
         }
 
         $prompt = "Anda adalah pembuat soal kuis pendidikan SD yang ahli.
@@ -63,6 +83,19 @@ class QuizGeneratorController extends Controller
         Mata Pelajaran: {$request->mapel}.
         Topik/Materi: {$request->topik}.
         Konteks Tambahan: {$deskripsi}.";
+
+        if ($materials->isNotEmpty()) {
+            $daftarMateri = $materials->map(fn ($m) => "- {$m->name}".($m->description ? ":\n{$m->description}" : ''))->implode("\n");
+            $namaMateri = $materials->pluck('name')->map(fn ($n) => "\"{$n}\"")->implode(', ');
+
+            $prompt .= "
+
+        MATERI DARI GURU (SATU-SATUNYA SUMBER FAKTA):
+        {$daftarMateri}
+
+        Semua fakta pada soal, kunci jawaban, dan pembahasan WAJIB diambil dari materi di atas. Jangan menambahkan fakta, nama daerah, istilah, atau angka yang tidak tertulis di materi. Bagikan soal secara merata ke setiap materi.
+        Isi field \"materi\" pada setiap soal dengan salah satu nama materi berikut persis sama: {$namaMateri}.";
+        }
 
         if (count($wrongQuestions) > 0) {
             $uniqueWrongs = array_slice(array_unique($wrongQuestions), 0, 5);
@@ -89,6 +122,7 @@ class QuizGeneratorController extends Controller
             {
                 \"question_text\": \"Teks pertanyaan di sini?\",
                 \"explanation\": \"Penjelasan singkat dan mudah dipahami mengapa jawaban tersebut benar.\",
+                \"materi\": \"Nama materi (hanya jika daftar materi diberikan)\",
                 \"options\": [
                     {\"option_text\": \"Pilihan A\", \"is_correct\": true},
                     {\"option_text\": \"Pilihan B\", \"is_correct\": false},
@@ -170,6 +204,14 @@ class QuizGeneratorController extends Controller
                             'error' => 'Format soal nomor '.($index + 1).' tidak lengkap dari AI. Silakan coba generate ulang.',
                         ], 500);
                     }
+                }
+
+                // Tandai materi tiap soal; nama yang tidak dikenali dibiarkan kosong untuk dipilih guru saat review
+                $byName = $materials->keyBy(fn ($m) => mb_strtolower(trim($m->name)));
+                foreach ($data as $index => $item) {
+                    $match = $byName->get(mb_strtolower(trim((string) ($item['materi'] ?? ''))));
+                    $data[$index]['material_id'] = $match?->id ?? ($materials->count() === 1 ? $materials->first()->id : null);
+                    unset($data[$index]['materi']);
                 }
 
                 return response()->json($data);

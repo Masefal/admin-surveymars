@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
 import { ArrowLeft, BookOpen, Target, Trophy, Clock, AlertCircle } from 'lucide-react';
+import { MaterialPerformanceList, NeedsAttentionNote } from '../Components/MaterialPerformance';
 
 export default function StudentReport() {
     const { id } = useParams();
@@ -23,9 +24,11 @@ export default function StudentReport() {
     if (!data || !data.student) return <AdminLayout><div className="p-10 text-center font-bold text-red-500">Data siswa tidak ditemukan.</div></AdminLayout>;
 
     const { student, history } = data;
+    const materials = data.material_performance || [];
+    const weakMaterials = data.needs_attention || [];
     const totalQuizzes = history.length;
     const averageScore = totalQuizzes > 0 ? Math.round(history.reduce((acc, curr) => acc + curr.score, 0) / totalQuizzes) : 0;
-    const needsHelp = averageScore < 70 && totalQuizzes > 0;
+    const needsHelp = weakMaterials.length > 0;
 
     return (
         <AdminLayout>
@@ -62,6 +65,14 @@ export default function StudentReport() {
                         <div className="text-sm text-gray-500 font-medium">Rata-rata Keseluruhan</div>
                     </div>
                 </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-8">
+                <div className="p-4 sm:p-6 border-b border-gray-100 bg-gray-50/50 space-y-3">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2"><Target size={18} className="text-[#1b6d39]" /> Performa per Materi</h3>
+                    {materials.length > 0 && <NeedsAttentionNote items={weakMaterials} />}
+                </div>
+                <MaterialPerformanceList items={materials} />
             </div>
 
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">

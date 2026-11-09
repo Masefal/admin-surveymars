@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\StudentResult;
+use App\Services\MaterialPerformance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class StudentController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, MaterialPerformance $performance)
     {
         $user = $request->user();
 
@@ -20,7 +21,17 @@ class StudentController extends Controller
             $query->where('parent_id', $user->id);
         }
 
-        return response()->json($query->orderBy('name')->get());
+        $students = $query->orderBy('name')->get();
+        $byStudent = $performance->forStudents($students->pluck('id'));
+
+        // Performa per materi + catatan materi yang perlu remedial/personalisasi
+        $students->each(function (Student $student) use ($byStudent) {
+            $materials = $byStudent[$student->id] ?? [];
+            $student->setAttribute('material_performance', $materials);
+            $student->setAttribute('needs_attention', MaterialPerformance::weak($materials));
+        });
+
+        return response()->json($students);
     }
 
     public function store(Request $request)
@@ -40,7 +51,7 @@ class StudentController extends Controller
         return response()->json(['message' => 'Siswa berhasil ditambahkan', 'student' => $student], 201);
     }
 
-    public function report($id)
+    public function report($id, MaterialPerformance $performance)
     {
         $student = Student::with('studentClass')->findOrFail($id);
         Gate::authorize('view', $student);
@@ -50,9 +61,13 @@ class StudentController extends Controller
                     ->orderBy('created_at', 'desc')
                     ->get();
 
+        $materials = $performance->forStudents([$student->id])[$student->id] ?? [];
+
         return response()->json([
             'student' => $student,
-            'history' => $history
+            'history' => $history,
+            'material_performance' => $materials,
+            'needs_attention' => MaterialPerformance::weak($materials),
         ]);
     }
 
@@ -80,12 +95,12 @@ class StudentController extends Controller
         return response()->json(['message' => 'Data anak berhasil dihubungkan!', 'student' => $student]);
     }
 
-    public function getLinkedStudent(Request $request)
+    public function getLinkedStudent(Request $request, MaterialPerformance $performance)
     {
         $children = $request->user()->children()->with('studentClass')->orderBy('name')->get();
 
         if ($children->isEmpty()) {
-            return response()->json(['students' => [], 'student' => null, 'results' => []]);
+            return response()->json(['students' => [], 'student' => null, 'results' => [], 'material_performance' => [], 'needs_attention' => []]);
         }
 
         $student = $children->firstWhere('id', (int) $request->query('student_id')) ?? $children->first();
@@ -95,10 +110,14 @@ class StudentController extends Controller
                                 ->orderBy('created_at', 'desc')
                                 ->get();
 
+        $materials = $performance->forStudents([$student->id])[$student->id] ?? [];
+
         return response()->json([
             'students' => $children,
             'student' => $student,
-            'results' => $results
+            'results' => $results,
+            'material_performance' => $materials,
+            'needs_attention' => MaterialPerformance::weak($materials),
         ]);
     }
 

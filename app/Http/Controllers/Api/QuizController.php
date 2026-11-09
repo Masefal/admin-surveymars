@@ -177,6 +177,7 @@ class QuizController extends Controller
                 'question_text' => $data['question_text'],
                 // Pembahasan lama dipertahankan kalau tidak ikut dikirim
                 'explanation' => array_key_exists('explanation', $data) ? $data['explanation'] : $question->explanation,
+                'material_id' => array_key_exists('material_id', $data) ? $data['material_id'] : $question->material_id,
             ]);
 
             $question->options()->delete();
@@ -201,6 +202,7 @@ class QuizController extends Controller
         return [
             $prefix . 'question_text' => 'required|string',
             $prefix . 'explanation' => 'nullable|string',
+            $prefix . 'material_id' => 'nullable|integer|exists:materials,id',
             $prefix . 'options' => 'required|array|min:2|max:6',
             $prefix . 'options.*.option_text' => 'required|string|max:255',
             $prefix . 'options.*.is_correct' => 'required|boolean',
@@ -221,6 +223,7 @@ class QuizController extends Controller
     private function createQuestion(Quiz $quiz, array $data): Question
     {
         $question = $quiz->questions()->create([
+            'material_id' => $data['material_id'] ?? null,
             'question_text' => $data['question_text'],
             'explanation' => $data['explanation'] ?? null,
             'type' => 'multiple_choice',

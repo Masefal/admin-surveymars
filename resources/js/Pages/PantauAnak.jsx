@@ -3,11 +3,14 @@ import { formatDuration } from '../format';
 import axios from 'axios';
 import { Link as LinkIcon, AlertCircle, Loader2, User, FileText, CheckCircle2, XCircle, Clock, BarChart2, TrendingDown, Award } from 'lucide-react';
 import AdminLayout from '../Layouts/AdminLayout';
+import { MaterialPerformanceList, PASSING_PERCENT } from '../Components/MaterialPerformance';
 
 export default function PantauAnak() {
     const [children, setChildren] = useState([]);
     const [student, setStudent] = useState(null);
     const [results, setResults] = useState([]);
+    const [materials, setMaterials] = useState([]);
+    const [weakMaterials, setWeakMaterials] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isLinking, setIsLinking] = useState(false);
     const [showLinkForm, setShowLinkForm] = useState(false);
@@ -22,6 +25,8 @@ export default function PantauAnak() {
             setChildren(response.data?.students || []);
             setStudent(response.data?.student || null);
             setResults(response.data?.results || []);
+            setMaterials(response.data?.material_performance || []);
+            setWeakMaterials(response.data?.needs_attention || []);
         } catch (err) {
             setStudent(null);
         } finally {
@@ -92,25 +97,9 @@ export default function PantauAnak() {
     );
 
     const getAcademicStats = () => {
-        if (!results.length) return { average: 0, weakSubjects: [] };
-        
+        if (!results.length) return { average: 0 };
         const totalScore = results.reduce((acc, curr) => acc + curr.score, 0);
-        const average = Math.round(totalScore / results.length);
-        
-        const subjectStats = {};
-        results.forEach(r => {
-            const subj = r.quiz?.subject?.name || 'Umum';
-            if (!subjectStats[subj]) subjectStats[subj] = { total: 0, count: 0 };
-            subjectStats[subj].total += r.score;
-            subjectStats[subj].count += 1;
-        });
-        
-        const weakSubjects = Object.keys(subjectStats)
-            .map(subj => ({ name: subj, avg: Math.round(subjectStats[subj].total / subjectStats[subj].count) }))
-            .filter(s => s.avg < 75)
-            .sort((a, b) => a.avg - b.avg);
-            
-        return { average, weakSubjects };
+        return { average: Math.round(totalScore / results.length) };
     };
 
     if (loading) {
@@ -189,39 +178,51 @@ export default function PantauAnak() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-5">
-                            <div className={`w-16 h-16 rounded-full flex items-center justify-center shrink-0 ${stats.average >= 75 ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center shrink-0 ${stats.average >= PASSING_PERCENT ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'}`}>
                                 <Award size={32} />
                             </div>
                             <div>
                                 <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Rata-rata Nilai</p>
                                 <div className="flex items-end gap-2">
-                                    <span className={`text-4xl font-black ${stats.average >= 75 ? 'text-green-600' : 'text-orange-600'}`}>{stats.average}</span>
+                                    <span className={`text-4xl font-black ${stats.average >= PASSING_PERCENT ? 'text-green-600' : 'text-orange-600'}`}>{stats.average}</span>
                                     <span className="text-gray-500 font-medium mb-1">/ 100</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex items-center gap-5">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
                             <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center shrink-0">
                                 <TrendingDown size={32} />
                             </div>
                             <div className="flex-1">
-                                <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Perlu Ditingkatkan</p>
-                                {stats.weakSubjects.length > 0 ? (
+                                <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Materi Perlu Perhatian Khusus</p>
+                                {weakMaterials.length > 0 ? (
                                     <div className="flex flex-wrap gap-2 mt-2">
-                                        {stats.weakSubjects.map((ws, i) => (
-                                            <span key={i} className="bg-red-50 text-red-600 border border-red-100 px-3 py-1.5 rounded-lg text-sm font-bold">
-                                                📚 {ws.name}
+                                        {weakMaterials.map((m, i) => (
+                                            <span key={i} title={m.subject || ''} className="bg-red-50 text-red-600 border border-red-100 px-3 py-1.5 rounded-lg text-sm font-bold">
+                                                📚 {m.material} ({m.percent}%)
                                             </span>
                                         ))}
                                     </div>
-                                ) : (
+                                ) : materials.length > 0 ? (
                                     <p className="text-sm font-bold text-green-600 mt-2 bg-green-50 px-3 py-1.5 rounded-lg inline-block border border-green-100">
-                                        Semua mata pelajaran baik! (≥75)
+                                        Semua materi tuntas! (≥{PASSING_PERCENT}%)
                                     </p>
+                                ) : (
+                                    <p className="text-sm text-gray-400 mt-2">Belum ada nilai.</p>
                                 )}
                             </div>
                         </div>
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="p-6 border-b border-gray-100">
+                            <h3 className="font-bold text-gray-900 text-lg flex items-center gap-2">
+                                <BarChart2 className="text-[#1b6d39]" size={20} /> Performa per Materi
+                            </h3>
+                            <p className="text-xs text-gray-400 mt-1">Persentase soal yang dijawab benar pada setiap materi. Di bawah {PASSING_PERCENT}% perlu remedial.</p>
+                        </div>
+                        <MaterialPerformanceList items={materials} />
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

@@ -183,7 +183,24 @@ export default function ReviewSoal() {
                         <div key={index} className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 shadow-sm hover:border-gray-300 transition-all">
                             <div className="flex justify-between items-center mb-3 sm:mb-4">
                                 <div className="text-[11px] sm:text-xs font-bold text-gray-400 tracking-wider">SOAL {index + 1}</div>
-                                <div className="text-[11px] sm:text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 sm:px-3 py-1 rounded-full">Pilihan Ganda</div>
+                                <div className="flex items-center gap-2">
+                                    {quizInfo.materials?.length > 0 && (
+                                        <select
+                                            aria-label={`Materi soal ${index + 1}`}
+                                            value={soal.material_id || ''}
+                                            onChange={(e) => {
+                                                const updated = [...questions];
+                                                updated[index] = { ...soal, material_id: e.target.value ? parseInt(e.target.value) : null };
+                                                setQuestions(updated);
+                                            }}
+                                            className={`text-[11px] sm:text-xs font-semibold rounded-full px-2.5 py-1 border outline-none ${soal.material_id ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : 'bg-red-50 border-red-200 text-red-600'}`}
+                                        >
+                                            <option value="">Materi belum dipilih</option>
+                                            {quizInfo.materials.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
+                                    )}
+                                    <div className="text-[11px] sm:text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 sm:px-3 py-1 rounded-full">Pilihan Ganda</div>
+                                </div>
                             </div>
                             <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-4 sm:mb-5 leading-relaxed">{soal.question_text}</h3>
                             

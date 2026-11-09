@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
 import axios from 'axios';
 import Login from './Pages/Login';
 import Dashboard from './Pages/Dashboard';
@@ -38,6 +38,17 @@ axios.interceptors.response.use(
     }
 );
 
+// Tautan yang salah ketik tidak lagi menampilkan layar putih
+function NotFound() {
+    return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center bg-[#F8F9FA]">
+            <h1 className="text-2xl font-extrabold text-gray-900">Halaman tidak ditemukan</h1>
+            <p className="text-gray-500 text-sm max-w-sm">Periksa kembali tautan yang Anda buka. Untuk mengerjakan kuis, gunakan tautan atau kode dari guru.</p>
+            <Link to="/" className="bg-[#1b6d39] text-white font-bold px-6 py-3 rounded-xl">Kembali ke Beranda</Link>
+        </div>
+    );
+}
+
 function App() {
     return (
         <BrowserRouter>
@@ -57,6 +68,7 @@ function App() {
                 <Route path="/kelola-siswa" element={<StudentManagement />} />
                 <Route path="/pantau-anak" element={<PantauAnak />} />
                 <Route path="/students/:id/report" element={<StudentReport />} />
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </BrowserRouter>
     );
@@ -64,5 +76,7 @@ function App() {
 
 const rootElement = document.getElementById('app');
 if (rootElement) {
-    ReactDOM.createRoot(rootElement).render(<App />);
+    // Dipakai ulang saat HMR supaya createRoot tidak dipanggil dua kali pada elemen yang sama
+    window.__quizRoot ??= ReactDOM.createRoot(rootElement);
+    window.__quizRoot.render(<App />);
 }
