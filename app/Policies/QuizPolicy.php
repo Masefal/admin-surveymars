@@ -20,6 +20,14 @@ class QuizPolicy
         return (int) $quiz->user_id === (int) $user->id;
     }
 
+    /**
+     * Hanya guru yang boleh menyetujui kuis yang belum disetujui (buatan orang tua).
+     */
+    public function approve(User $user, Quiz $quiz): bool
+    {
+        return $user->isGuru() && ! $quiz->approved_at;
+    }
+
     public function delete(User $user, Quiz $quiz): bool
     {
         return $this->update($user, $quiz);

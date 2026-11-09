@@ -41,7 +41,7 @@ class StudentCrudTest extends TestCase
 
         return Quiz::create(array_merge([
             'user_id' => $this->guru->id, 'subject_id' => $mapel->id, 'student_class_id' => $this->kelas4->id,
-            'title' => 'Kuis', 'share_code' => strtoupper(substr(md5(uniqid()), 0, 5)), 'status' => 'active', 'time_limit_minutes' => 30,
+            'title' => 'Kuis', 'share_code' => strtoupper(substr(md5(uniqid()), 0, 5)), 'status' => 'active', 'approved_at' => now(), 'time_limit_minutes' => 30,
         ], $attrs));
     }
 

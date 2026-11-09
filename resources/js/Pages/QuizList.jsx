@@ -125,10 +125,10 @@ export default function Quizzes() {
                                             {quiz.subject?.name || 'UMUM'}
                                         </span>
                                     </div>
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase ${
-                                        quiz.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase text-center ${
+                                        !quiz.approved_at ? 'bg-blue-100 text-blue-700' : quiz.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                                     }`}>
-                                        {quiz.status === 'active' ? 'Aktif' : quiz.status === 'draft' ? 'Draf' : 'Selesai'}
+                                        {!quiz.approved_at ? 'Menunggu persetujuan' : quiz.status === 'active' ? 'Aktif' : quiz.status === 'draft' ? 'Draf' : 'Selesai'}
                                     </span>
                                 </div>
                                 <h3 className="font-extrabold text-gray-900 text-lg mb-1 leading-tight">{quiz.title}</h3>
@@ -152,7 +152,7 @@ export default function Quizzes() {
                                 </Link>
                                 {quiz.can_manage && (
                                     <>
-                                        <button onClick={() => toggleStatus(quiz.id, quiz.status)} className={`flex flex-col items-center justify-center p-3 transition-colors gap-1 ${quiz.status === 'active' ? 'text-orange-500 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}>
+                                        <button onClick={() => toggleStatus(quiz.id, quiz.status)} disabled={!quiz.approved_at} title={!quiz.approved_at ? 'Menunggu persetujuan guru' : ''} className={`flex flex-col items-center justify-center p-3 transition-colors gap-1 disabled:opacity-40 disabled:cursor-not-allowed ${quiz.status === 'active' ? 'text-orange-500 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}>
                                             <Power size={18} />
                                             <span className="text-[10px] font-bold uppercase">{quiz.status === 'active' ? 'Tutup' : 'Buka'}</span>
                                         </button>

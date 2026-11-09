@@ -39,7 +39,7 @@ class RetakeRoundTest extends TestCase
 
         $this->quiz = Quiz::create([
             'user_id' => $guru->id, 'subject_id' => $mapel->id, 'student_class_id' => $kelas->id,
-            'title' => 'Latihan', 'share_code' => 'RONDE', 'status' => 'active', 'time_limit_minutes' => 30, 'max_attempts' => 3,
+            'title' => 'Latihan', 'share_code' => 'RONDE', 'status' => 'active', 'approved_at' => now(), 'time_limit_minutes' => 30, 'max_attempts' => 3,
         ]);
 
         // 4 soal: 2 egrang, 2 engklek. Opsi pertama selalu kunci.
@@ -183,7 +183,7 @@ class RetakeRoundTest extends TestCase
         // Kuis remedial baru khusus engklek dengan soal berbeda, dijawab benar
         $remedial = Quiz::create([
             'user_id' => $this->quiz->user_id, 'subject_id' => $this->quiz->subject_id, 'student_class_id' => $this->quiz->student_class_id,
-            'target_student_id' => $this->siswa->id, 'title' => 'Remedial Engklek', 'share_code' => 'REMED', 'status' => 'active', 'time_limit_minutes' => 30,
+            'target_student_id' => $this->siswa->id, 'title' => 'Remedial Engklek', 'share_code' => 'REMED', 'status' => 'active', 'approved_at' => now(), 'time_limit_minutes' => 30,
         ]);
         $q = Question::create(['quiz_id' => $remedial->id, 'material_id' => $this->engklek->id, 'question_text' => 'Engklek baru', 'type' => 'multiple_choice', 'points' => 10]);
         $benar = Option::create(['question_id' => $q->id, 'option_text' => 'Benar', 'is_correct' => true]);

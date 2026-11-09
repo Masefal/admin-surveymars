@@ -13,6 +13,7 @@ class Quiz extends Model
     {
         return [
             'max_attempts' => 'integer',
+            'approved_at' => 'datetime',
         ];
     }
 

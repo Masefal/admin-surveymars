@@ -40,7 +40,7 @@ class MaterialPerformanceTest extends TestCase
 
         $this->quiz = Quiz::create([
             'user_id' => $this->guru->id, 'subject_id' => $this->mapel->id, 'student_class_id' => $kelas->id,
-            'title' => 'Latihan', 'share_code' => 'ABCDE', 'status' => 'active', 'time_limit_minutes' => 30,
+            'title' => 'Latihan', 'share_code' => 'ABCDE', 'status' => 'active', 'approved_at' => now(), 'time_limit_minutes' => 30,
         ]);
 
         // Egrang: 2 soal benar semua; Engklek: 1 dari 2 benar; satu soal tanpa materi

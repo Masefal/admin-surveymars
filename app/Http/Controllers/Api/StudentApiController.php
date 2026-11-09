@@ -193,7 +193,8 @@ class StudentApiController extends Controller
 
     private function findActiveQuiz(string $shareCode): ?Quiz
     {
-        return Quiz::where('share_code', $shareCode)->where('status', 'active')->first();
+        // Kuis yang belum disetujui guru tidak bisa dikerjakan walaupun statusnya diubah manual
+        return Quiz::where('share_code', $shareCode)->where('status', 'active')->whereNotNull('approved_at')->first();
     }
 
     /**

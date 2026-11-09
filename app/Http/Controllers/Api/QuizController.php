@@ -19,7 +19,7 @@ class QuizController extends Controller
     public function index(Request $request)
     {
         $query = Quiz::visibleTo($request->user())
-            ->with(['subject', 'studentClass', 'targetStudent:id,name'])
+            ->with(['subject', 'studentClass', 'targetStudent:id,name', 'creator:id,name,role'])
             ->withCount('studentResults');
 
         if ($request->filled('search')) {
@@ -82,9 +82,12 @@ class QuizController extends Controller
                 'title' => $quizInfo['topik'],
                 'description' => $quizInfo['deskripsi'] ?? null,
                 'share_code' => $this->generateShareCode(),
-                'status' => 'active',
+                // Kuis buatan orang tua harus ditinjau guru dulu (soal AI bisa keliru)
+                'status' => $user->isGuru() ? 'active' : 'draft',
                 'time_limit_minutes' => $quizInfo['waktu'] ?? 30,
                 'max_attempts' => $quizInfo['max_attempts'] ?? null,
+                'approved_at' => $user->isGuru() ? now() : null,
+                'approved_by' => $user->isGuru() ? $user->id : null,
             ]);
 
             foreach ($request->input('questions') as $q) {
@@ -102,7 +105,7 @@ class QuizController extends Controller
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        $quiz = Quiz::with(['subject', 'studentClass', 'targetStudent:id,name', 'questions.options'])->findOrFail($id);
+        $quiz = Quiz::with(['subject', 'studentClass', 'targetStudent:id,name', 'creator:id,name,role', 'questions.options'])->findOrFail($id);
 
         Gate::authorize('view', $quiz);
 
@@ -135,10 +138,43 @@ class QuizController extends Controller
         $quiz = Quiz::findOrFail($id);
         Gate::authorize('update', $quiz);
 
+        if (! $quiz->approved_at) {
+            return response()->json(['message' => 'Kuis ini masih menunggu persetujuan guru, jadi belum bisa dibuka.'], 403);
+        }
+
         $quiz->status = $quiz->status === 'active' ? 'finished' : 'active';
         $quiz->save();
 
         return response()->json(['message' => 'Status berhasil diubah', 'quiz' => $quiz]);
+    }
+
+    /**
+     * Guru menyetujui kuis buatan orang tua setelah meninjau soalnya, lalu kuis langsung dibuka.
+     */
+    public function approve(Request $request, $id)
+    {
+        $quiz = Quiz::findOrFail($id);
+        Gate::authorize('approve', $quiz);
+
+        $quiz->update([
+            'approved_at' => now(),
+            'approved_by' => $request->user()->id,
+            'status' => 'active',
+        ]);
+
+        return response()->json(['message' => 'Kuis disetujui dan dibuka untuk siswa.', 'quiz' => $quiz]);
+    }
+
+    /**
+     * Orang tua mengubah soal kuis yang sudah disetujui: kuis kembali menunggu persetujuan guru.
+     */
+    private function requireReapprovalIfParent(Request $request, Quiz $quiz): void
+    {
+        if ($request->user()->isGuru() || ! $quiz->approved_at) {
+            return;
+        }
+
+        $quiz->update(['approved_at' => null, 'approved_by' => null, 'status' => 'draft']);
     }
 
     public function updateSettings(Request $request, $id)
@@ -175,6 +211,7 @@ class QuizController extends Controller
         $this->ensureMaterial($quiz->subject_id, $data['material_id'] ?? null, 'material_id');
 
         DB::transaction(fn () => $this->createQuestion($quiz, $data));
+        $this->requireReapprovalIfParent($request, $quiz);
 
         return response()->json(['message' => 'Soal ditambahkan']);
     }
@@ -189,6 +226,8 @@ class QuizController extends Controller
         if (array_key_exists('material_id', $data)) {
             $this->ensureMaterial($question->quiz->subject_id, $data['material_id'], 'material_id');
         }
+
+        $this->requireReapprovalIfParent($request, $question->quiz);
 
         DB::transaction(function () use ($question, $data) {
             $question->update([
@@ -205,10 +244,11 @@ class QuizController extends Controller
         return response()->json(['message' => 'Soal diperbarui']);
     }
 
-    public function deleteQuestion($questionId)
+    public function deleteQuestion(Request $request, $questionId)
     {
         $question = Question::with('quiz')->findOrFail($questionId);
         Gate::authorize('update', $question->quiz);
+        $this->requireReapprovalIfParent($request, $question->quiz);
 
         $question->delete();
 

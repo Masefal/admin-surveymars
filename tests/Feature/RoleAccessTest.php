@@ -56,7 +56,7 @@ class RoleAccessTest extends TestCase
             'student_class_id' => $this->kelas1->id,
             'title' => 'Kuis ' . Str::random(4),
             'share_code' => strtoupper(Str::random(5)),
-            'status' => 'active',
+            'status' => 'active', 'approved_at' => now(),
             'time_limit_minutes' => 30,
         ], $attributes));
 

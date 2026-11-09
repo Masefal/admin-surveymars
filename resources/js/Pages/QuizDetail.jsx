@@ -66,6 +66,22 @@ export default function QuizDetail() {
         }
     };
 
+    const isGuru = JSON.parse(localStorage.getItem('user') || '{}')?.role === 'guru';
+    const [approving, setApproving] = useState(false);
+
+    const approveQuiz = async () => {
+        if (!window.confirm('Setujui kuis ini? Pastikan Anda sudah memeriksa semua soal di tab Daftar Soal.')) return;
+        setApproving(true);
+        try {
+            const res = await axios.post(`/api/quizzes/${id}/approve`);
+            setQuiz(prev => ({ ...prev, ...res.data.quiz }));
+        } catch (error) {
+            alert(error.response?.data?.message || 'Gagal menyetujui kuis.');
+        } finally {
+            setApproving(false);
+        }
+    };
+
     const toggleRow = (idx) => setExpandedRow(expandedRow === idx ? null : idx);
 
     const updateAttempts = async (value) => {
@@ -198,7 +214,31 @@ export default function QuizDetail() {
                 <div className="text-xs sm:text-sm font-medium text-gray-400">Beranda / Detail Quiz</div>
             </div>
 
-            {quiz.status !== 'active' && (
+            {!quiz.approved_at && (
+                <div role="status" className="mb-4 sm:mb-6 bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-2 text-sm text-blue-900">
+                        <AlertTriangle size={18} className="shrink-0 mt-0.5" />
+                        {isGuru ? (
+                            <span>
+                                <strong>Kuis buatan orang tua{quiz.creator?.name ? ` (${quiz.creator.name})` : ''} menunggu persetujuan Anda.</strong>{' '}
+                                Periksa tab <strong>Daftar Soal</strong>: kunci jawaban, materi, dan kesesuaian dengan kisi-kisi. Setelah disetujui, kuis langsung bisa dikerjakan siswa.
+                            </span>
+                        ) : (
+                            <span>
+                                <strong>Menunggu persetujuan guru.</strong>{' '}
+                                Soal buatan AI ditinjau guru dulu supaya tidak ada yang keliru. Anak bisa mengerjakan setelah guru menyetujui.
+                            </span>
+                        )}
+                    </div>
+                    {isGuru && (
+                        <button onClick={approveQuiz} disabled={approving} className="shrink-0 bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold text-sm px-4 py-2 rounded-lg disabled:opacity-50">
+                            {approving ? 'Menyetujui...' : 'Setujui & Buka Kuis'}
+                        </button>
+                    )}
+                </div>
+            )}
+
+            {quiz.approved_at && quiz.status !== 'active' && (
                 <div role="status" className="mb-4 sm:mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-start gap-2 text-sm text-amber-800">
                         <AlertTriangle size={18} className="shrink-0 mt-0.5" />
@@ -278,12 +318,12 @@ export default function QuizDetail() {
                             )}
                         </div>
                     )}
-                    <button 
+                    {quiz.approved_at && <button
                         onClick={() => navigate('/dibagikan', { state: { quiz: quiz } })}
                         className="w-full sm:w-auto bg-[#F2994A] hover:bg-[#e0893d] transition-colors text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md shrink-0 text-sm sm:text-base"
                     >
                         <Send size={18} /> Bagikan
-                    </button>
+                    </button>}
                 </div>
             </div>
 

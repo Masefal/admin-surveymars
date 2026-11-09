@@ -20,7 +20,14 @@ class DashboardController extends Controller
                             ->take(5)
                             ->get();
 
+        // Kuis buatan orang tua yang harus ditinjau guru sebelum bisa dikerjakan
+        $pendingApprovals = Quiz::whereNull('approved_at')
+            ->with(['creator:id,name', 'targetStudent:id,name', 'subject:id,name'])
+            ->latest()
+            ->get(['id', 'title', 'user_id', 'target_student_id', 'subject_id', 'created_at']);
+
         return response()->json([
+            'pending_approvals' => $pendingApprovals,
             'total_quiz' => $totalQuiz,
             'active_quiz' => $activeQuiz,
             'recent_quizzes' => $recentQuizzes

@@ -13,6 +13,7 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const [stats, setStats] = useState({ total_quiz: 0, active_quiz: 0 });
     const [recentQuizzes, setRecentQuizzes] = useState([]);
+    const [pendingApprovals, setPendingApprovals] = useState([]);
     const [linkedStudent, setLinkedStudent] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -48,6 +49,7 @@ export default function Dashboard() {
                         active_quiz: response.data.active_quiz
                     });
                     setRecentQuizzes(response.data.recent_quizzes);
+                    setPendingApprovals(response.data.pending_approvals || []);
                 }
             } catch (error) {
                 console.error(error);
@@ -223,6 +225,25 @@ export default function Dashboard() {
                     {initial}
                 </Link>
             </div>
+
+            {pendingApprovals.length > 0 && (
+                <div role="status" className="mb-6 bg-blue-50 border border-blue-200 rounded-2xl p-4 sm:p-5">
+                    <div className="flex items-center gap-2 font-bold text-blue-900 text-sm sm:text-base mb-1">
+                        <AlertCircle size={18} /> {pendingApprovals.length} kuis dari orang tua menunggu persetujuan
+                    </div>
+                    <p className="text-xs sm:text-sm text-blue-800 mb-3">Tinjau soal buatan AI sebelum anak bisa mengerjakannya.</p>
+                    <ul className="space-y-2">
+                        {pendingApprovals.map(q => (
+                            <li key={q.id}>
+                                <Link to={`/quiz/${q.id}`} className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 bg-white border border-blue-100 rounded-xl px-4 py-3 hover:border-blue-300 transition-colors">
+                                    <span className="font-bold text-gray-900 text-sm break-words">{q.title}</span>
+                                    <span className="text-xs text-gray-500">{q.subject?.name} · untuk {q.target_student?.name || '-'} · dari {q.creator?.name || 'orang tua'}</span>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             <div className="bg-[#1b6d39] rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center text-white mb-6 sm:mb-8 shadow-lg gap-4">
                 <div>

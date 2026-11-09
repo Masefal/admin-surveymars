@@ -12,6 +12,7 @@ export default function ReviewSoal() {
 
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const userName = user.name || 'Admin';
+    const isParent = user.role === 'orang_tua';
     const initial = userName.charAt(0).toUpperCase();
 
     const { quizInfo, generatedQuestions: initialQuestions } = location.state || {};
@@ -70,9 +71,12 @@ export default function ReviewSoal() {
                 questions: questions
             });
             
-            navigate('/dibagikan', { 
-                state: { quiz: response.data.quiz } 
-            });
+            // Kuis buatan orang tua menunggu persetujuan guru, jadi belum ada tautan untuk dibagikan
+            if (isParent) {
+                navigate(`/quiz/${response.data.quiz.id}`);
+            } else {
+                navigate('/dibagikan', { state: { quiz: response.data.quiz } });
+            }
         } catch (error) {
             const errors = error.response?.data?.errors;
             alert(errors ? Object.values(errors).flat()[0] : "Gagal menyimpan kuis. Silakan coba lagi.");
@@ -108,7 +112,7 @@ export default function ReviewSoal() {
                 </div>
                 <div className="flex items-center gap-2 px-3.5 sm:px-4 py-1.5 sm:py-2 bg-orange-50 text-orange-600 font-semibold text-xs sm:text-sm rounded-xl border border-orange-100 shadow-xs">
                     <Sparkles size={16} />
-                    AI membantu, Anda tetap menentukan.
+                    {isParent ? 'Setelah dikirim, guru meninjau soal dulu sebelum anak bisa mengerjakan.' : 'AI membantu, Anda tetap menentukan.'}
                 </div>
             </div>
 
@@ -242,7 +246,7 @@ export default function ReviewSoal() {
                 <div className="flex w-full sm:w-auto gap-2 sm:gap-4 justify-end">
                     <button onClick={() => navigate('/generate')} className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 transition-colors text-xs sm:text-sm">Batal</button>
                     <button onClick={handlePublish} disabled={isPublishing || editingIndex !== null || missingMaterialCount > 0} className="flex-1 sm:flex-none px-5 sm:px-8 py-2.5 rounded-xl bg-[#1b6d39] text-white font-bold hover:bg-[#14532b] transition-colors flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:shadow-none text-xs sm:text-sm">
-                        {isPublishing ? 'Menyimpan...' : 'Publikasikan Sekarang'} <ArrowRight size={16} />
+                        {isPublishing ? 'Menyimpan...' : (isParent ? 'Kirim ke Guru untuk Disetujui' : 'Publikasikan Sekarang')} <ArrowRight size={16} />
                     </button>
                 </div>
             </div>

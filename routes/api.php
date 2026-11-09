@@ -32,6 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/quizzes', [QuizController::class, 'store']);
     Route::get('/quizzes/{id}', [QuizController::class, 'show']);
     Route::put('/quizzes/{id}/status', [QuizController::class, 'updateStatus']);
+    Route::post('/quizzes/{id}/approve', [QuizController::class, 'approve'])->middleware('role:guru');
     Route::put('/quizzes/{id}/settings', [QuizController::class, 'updateSettings']);
     Route::delete('/quizzes/{id}', [QuizController::class, 'destroy']);
     Route::post('/quizzes/{id}/questions', [QuizController::class, 'addQuestion']);

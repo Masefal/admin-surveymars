@@ -63,13 +63,13 @@ export default function QuizDibagikan() {
                     <span className={`bg-white font-black px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm shadow-md tracking-wide ${
                         quiz?.status === 'active' ? 'text-[#1b6d39]' : 'text-red-500'
                     }`}>
-                        {quiz?.status === 'active' ? 'AKTIF' : 'DITUTUP'}
+                        {quiz && !quiz.approved_at ? 'MENUNGGU PERSETUJUAN GURU' : quiz?.status === 'active' ? 'AKTIF' : 'DITUTUP'}
                     </span>
                 </div>
 
                 <div className="w-full max-w-2xl relative z-10">
                     <h2 className="text-2xl sm:text-3xl font-bold mb-2 flex items-center gap-2">
-                        Quiz siap dibagikan! 🎉
+                        {quiz && !quiz.approved_at ? 'Menunggu persetujuan guru' : 'Quiz siap dibagikan! 🎉'}
                     </h2>
                     <h3 className="text-xl sm:text-2xl font-semibold mb-2 text-green-50">{quiz?.subject?.name || '-'} — {quiz?.title || '-'}</h3>
                     <p className="text-green-200/90 text-sm sm:text-base mb-6 sm:mb-8 font-medium">{quiz?.student_class?.name || '-'} {quiz?.time_limit_minutes > 0 ? `• ${quiz.time_limit_minutes} menit` : '• Tanpa Batas Waktu'}</p>
