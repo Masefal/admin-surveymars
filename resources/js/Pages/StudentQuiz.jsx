@@ -12,6 +12,8 @@ export default function StudentQuiz() {
     const studentId = location.state?.studentId || null;
     const studentName = location.state?.studentName || '';
     const nisn = location.state?.nisn || '';
+    const round = location.state?.round || 1;
+    const totalQuestions = location.state?.totalQuestions || quiz?.questions?.length || 0;
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState({});
@@ -59,7 +61,23 @@ export default function StudentQuiz() {
 
         try {
             const response = await axios.post(`/api/student/quiz/${quizId}/submit`, payload);
-            navigate(`/q/${quizId}/result`, { state: { result: response.data.result, quiz: response.data.review, studentAnswers: answers, remainingAttempts: response.data.remaining_attempts } });
+            navigate(`/q/${quizId}/result`, {
+                state: {
+                    result: response.data.result,
+                    quiz: response.data.review,
+                    studentAnswers: answers,
+                    remainingAttempts: response.data.remaining_attempts,
+                    round: response.data.round,
+                    roundQuestionCount: response.data.round_question_count,
+                    roundCorrect: response.data.round_correct,
+                    totalQuestions: response.data.total_questions,
+                    remainingWrong: response.data.remaining_wrong,
+                    canRetry: response.data.can_retry,
+                    // Untuk tombol "ulangi soal yang salah" tanpa mengetik NISN lagi
+                    student: { id: studentId, nisn },
+                    baseQuiz: quiz,
+                },
+            });
         } catch (error) {
             const errors = error.response?.data?.errors;
             alert((errors && Object.values(errors).flat()[0]) || error.response?.data?.error || 'Gagal mengirimkan kuis.');
@@ -91,6 +109,11 @@ export default function StudentQuiz() {
                     <div>
                         <h2 className="font-bold text-gray-900 text-sm sm:text-base truncate">{quiz.title}</h2>
                         <div className="flex items-center gap-1 text-xs text-gray-500 mt-1"><User size={12}/> {studentName}</div>
+                        {round > 1 && (
+                            <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-orange-700 bg-orange-50 border border-orange-100 px-2.5 py-1 rounded-lg">
+                                Ronde {round}: {quiz.questions.length} dari {totalQuestions} soal yang belum benar
+                            </div>
+                        )}
                     </div>
                     <div className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 text-center">
                         Soal {currentQuestionIndex + 1} / {quiz.questions.length}

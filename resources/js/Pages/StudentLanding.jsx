@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BookOpen, Clock, KeyRound, Loader2, PlayCircle, RotateCcw, User } from 'lucide-react';
+import { startRound, verifyErrorMessage } from '../studentRound';
 
 export default function StudentLanding() {
     const { quizId } = useParams();
@@ -14,6 +15,7 @@ export default function StudentLanding() {
     const [nisn, setNisn] = useState('');
     const [verifying, setVerifying] = useState(false);
     const [verifyError, setVerifyError] = useState('');
+    const [completedMessage, setCompletedMessage] = useState('');
 
     useEffect(() => {
         axios.get(`/api/student/quiz/${quizId}`)
@@ -35,15 +37,15 @@ export default function StudentLanding() {
         }
         setVerifying(true);
         setVerifyError('');
+        setCompletedMessage('');
         try {
-            const response = await axios.post(`/api/student/quiz/${quizId}/verify`, { student_id: selectedStudent, nisn });
-            const student = response.data.student;
-            navigate(`/q/${quizId}/play`, {
-                state: { quiz, studentId: student.id, studentName: student.name, nisn }
-            });
+            const res = await startRound({ quizCode: quizId, quiz, studentId: selectedStudent, nisn: nisn.trim(), navigate });
+            if (res.completed) {
+                setCompletedMessage(`Hebat, ${res.student.name}! Semua soal kuis ini sudah kamu jawab benar, jadi tidak perlu mengulang lagi.`);
+                setVerifying(false);
+            }
         } catch (err) {
-            const errors = err.response?.data?.errors;
-            setVerifyError((errors && Object.values(errors).flat()[0]) || err.response?.data?.error || 'Gagal memverifikasi. Coba lagi.');
+            setVerifyError(verifyErrorMessage(err));
             setVerifying(false);
         }
     };
@@ -96,6 +98,9 @@ export default function StudentLanding() {
                                 </div>
                             )}
                         </div>
+                        {quiz.max_attempts !== 1 && (
+                            <p className="-mt-5 mb-6 text-xs text-gray-500">Kalau mengulang, yang muncul hanya soal yang belum kamu jawab benar.</p>
+                        )}
 
                         <div className="space-y-4">
                             <div>
@@ -121,6 +126,7 @@ export default function StudentLanding() {
                                 />
                             </div>
                             {verifyError && <p className="text-xs sm:text-sm font-bold text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{verifyError}</p>}
+                            {completedMessage && <p role="status" className="text-xs sm:text-sm font-bold text-green-700 bg-green-50 border border-green-100 rounded-xl p-3">{completedMessage}</p>}
                             <button
                                 onClick={handleStart} disabled={!selectedStudent || !nisn || verifying}
                                 className="w-full bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 text-sm sm:text-base shadow-sm"

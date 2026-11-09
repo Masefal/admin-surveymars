@@ -39,8 +39,11 @@ class MaterialPerformance
             ->keyBy('id');
 
         $buckets = [];
+        // Satu soal bisa dikerjakan ulang (ronde ulang / kesempatan berikutnya);
+        // yang dihitung hanya jawaban TERAKHIR siswa untuk soal itu.
+        $latestAnswer = [];
 
-        foreach ($results as $result) {
+        foreach ($results->sortBy('id') as $result) {
             $fallback = [
                 'key' => 'quiz:'.mb_strtolower(trim($result->quiz?->title ?? 'Kuis dihapus')).'|'.($result->quiz?->subject_id ?? 0),
                 'material_id' => null,
@@ -65,7 +68,17 @@ class MaterialPerformance
                     'subject' => $material->subject?->name,
                 ] : $fallback;
 
-                $this->add($buckets, $result->student_id, $group, ! empty($answer['is_correct']) ? 1 : 0, 1);
+                if (isset($answer['question_id'])) {
+                    $latestAnswer[$result->student_id][$answer['question_id']] = [$group, ! empty($answer['is_correct'])];
+                } else {
+                    $this->add($buckets, $result->student_id, $group, ! empty($answer['is_correct']) ? 1 : 0, 1);
+                }
+            }
+        }
+
+        foreach ($latestAnswer as $studentId => $byQuestion) {
+            foreach ($byQuestion as [$group, $correct]) {
+                $this->add($buckets, $studentId, $group, $correct ? 1 : 0, 1);
             }
         }
 

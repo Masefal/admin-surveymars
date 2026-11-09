@@ -323,13 +323,14 @@ class RoleAccessTest extends TestCase
         $this->assertSame(1, StudentResult::count());
     }
 
-    private function submitPayload(Quiz $quiz): array
+    private function submitPayload(Quiz $quiz, bool $correct = true): array
     {
+        // options[0] adalah kunci di makeQuiz(); options[1] jawaban salah
         return [
             'student_id' => $this->anak->id,
             'nisn' => '111',
             'time_spent_seconds' => 60,
-            'answers' => $quiz->questions->map(fn ($q) => ['question_id' => $q->id, 'option_id' => $q->options[0]->id])->all(),
+            'answers' => $quiz->questions->map(fn ($q) => ['question_id' => $q->id, 'option_id' => $q->options[$correct ? 0 : 1]->id])->all(),
         ];
     }
 
@@ -341,12 +342,12 @@ class RoleAccessTest extends TestCase
         $this->postJson($url . '/verify', ['student_id' => $this->anak->id, 'nisn' => '111'])
             ->assertOk()->assertJsonPath('remaining_attempts', 1);
 
-        $this->postJson($url . '/submit', $this->submitPayload($quiz))
+        $this->postJson($url . '/submit', $this->submitPayload($quiz, false))
             ->assertCreated()->assertJsonPath('remaining_attempts', 0);
 
         $this->postJson($url . '/verify', ['student_id' => $this->anak->id, 'nisn' => '111'])
             ->assertUnprocessable()->assertJsonValidationErrors('attempts');
-        $this->postJson($url . '/submit', $this->submitPayload($quiz))
+        $this->postJson($url . '/submit', $this->submitPayload($quiz, false))
             ->assertUnprocessable()->assertJsonValidationErrors('attempts');
 
         // Kesempatan dihitung per siswa, teman sekelas tetap bisa mengerjakan
@@ -360,7 +361,7 @@ class RoleAccessTest extends TestCase
         $quiz = $this->makeQuiz($this->guru);
 
         foreach (range(1, 3) as $i) {
-            $this->postJson('/api/student/quiz/' . $quiz->share_code . '/submit', $this->submitPayload($quiz))
+            $this->postJson('/api/student/quiz/' . $quiz->share_code . '/submit', $this->submitPayload($quiz, false))
                 ->assertCreated()->assertJsonPath('remaining_attempts', null);
         }
     }
