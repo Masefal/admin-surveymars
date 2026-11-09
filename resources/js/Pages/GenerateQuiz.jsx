@@ -114,8 +114,30 @@ export default function GenerateQuiz() {
     // Guru bisa menambah materi tanpa pindah ke Master Data; tersimpan di daftar materi yang sama
     const [showNewMaterial, setShowNewMaterial] = useState(false);
     const [newMaterial, setNewMaterial] = useState({ name: '', description: '' });
+    // null = tambah materi baru; berisi id = sedang melihat/mengubah materi tersebut
+    const [editingMaterialId, setEditingMaterialId] = useState(null);
     const [savingMaterial, setSavingMaterial] = useState(false);
     const [materialError, setMaterialError] = useState('');
+
+    const openNewMaterial = () => {
+        setEditingMaterialId(null);
+        setNewMaterial({ name: '', description: '' });
+        setMaterialError('');
+        setShowNewMaterial(true);
+    };
+
+    const openMaterial = (material) => {
+        setEditingMaterialId(material.id);
+        setNewMaterial({ name: material.name, description: material.description || '' });
+        setMaterialError('');
+        setShowNewMaterial(true);
+    };
+
+    const closeMaterialPanel = () => {
+        setShowNewMaterial(false);
+        setEditingMaterialId(null);
+        setMaterialError('');
+    };
 
     const saveNewMaterial = async () => {
         if (!newMaterial.name.trim()) {
@@ -124,16 +146,19 @@ export default function GenerateQuiz() {
         }
         setSavingMaterial(true);
         setMaterialError('');
+        const payload = { name: newMaterial.name.trim(), description: newMaterial.description.trim() || null };
         try {
-            const res = await axios.post('/api/master-data/materials', {
-                subject_id: parseInt(formData.subject_id),
-                name: newMaterial.name.trim(),
-                description: newMaterial.description.trim() || null,
-            });
-            setMaterials(prev => [...prev, res.data]);
-            setFormData(prev => ({ ...prev, material_ids: [...prev.material_ids, res.data.id] }));
+            if (editingMaterialId) {
+                const res = await axios.put(`/api/master-data/materials/${editingMaterialId}`, payload);
+                setMaterials(prev => prev.map(m => (m.id === editingMaterialId ? res.data : m)));
+            } else {
+                const res = await axios.post('/api/master-data/materials', { ...payload, subject_id: parseInt(formData.subject_id) });
+                setMaterials(prev => [...prev, res.data]);
+                setFormData(prev => ({ ...prev, material_ids: [...prev.material_ids, res.data.id] }));
+            }
             setNewMaterial({ name: '', description: '' });
             setShowNewMaterial(false);
+            setEditingMaterialId(null);
         } catch (err) {
             const errors = err.response?.data?.errors;
             setMaterialError(errors ? Object.values(errors).flat()[0] : 'Gagal menyimpan materi.');
@@ -396,48 +421,75 @@ export default function GenerateQuiz() {
                             )}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {subjectMaterials.map(m => (
-                                    <label key={m.id} className={`flex items-start gap-2 border-2 rounded-xl px-3 py-2.5 cursor-pointer text-sm ${formData.material_ids.includes(m.id) ? 'border-[#1b6d39] bg-green-50/50' : 'border-gray-200'}`}>
-                                        <input type="checkbox" className="mt-0.5 accent-[#1b6d39]" checked={formData.material_ids.includes(m.id)} onChange={() => toggleMaterial(m.id)} />
-                                        <span className="font-semibold text-gray-700">
-                                            {m.name}
-                                            {weakMaterialIds.has(m.id) && <span className="ml-1.5 text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded">perlu remedial</span>}
-                                        </span>
-                                    </label>
+                                    <div key={m.id} className={`flex items-start justify-between gap-2 border-2 rounded-xl px-3 py-2.5 text-sm ${formData.material_ids.includes(m.id) ? 'border-[#1b6d39] bg-green-50/50' : 'border-gray-200'} ${editingMaterialId === m.id && showNewMaterial ? 'ring-2 ring-indigo-300' : ''}`}>
+                                        <label className="flex items-start gap-2 cursor-pointer min-w-0 flex-1">
+                                            <input type="checkbox" className="mt-0.5 accent-[#1b6d39]" checked={formData.material_ids.includes(m.id)} onChange={() => toggleMaterial(m.id)} />
+                                            <span className="font-semibold text-gray-700 break-words">
+                                                {m.name}
+                                                {weakMaterialIds.has(m.id) && <span className="ml-1.5 text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-1.5 py-0.5 rounded">perlu remedial</span>}
+                                            </span>
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => openMaterial(m)}
+                                            aria-label={`${isParent ? 'Lihat' : 'Lihat atau ubah'} kisi-kisi ${m.name}`}
+                                            className="shrink-0 text-xs font-bold text-indigo-600 hover:text-indigo-800 px-1"
+                                        >
+                                            {isParent ? 'Lihat' : 'Lihat/Edit'}
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                             {materialMissing && subjectMaterials.length > 0 && (
                                 <p className="mt-2 text-xs font-semibold text-red-600">Pilih minimal satu materi. Nilai siswa akan tercatat per materi ini.</p>
                             )}
 
+                            {showNewMaterial && isParent && (
+                                // Orang tua hanya bisa membaca kisi-kisi dari guru
+                                <div className="mt-3 border-2 border-indigo-100 bg-indigo-50/40 rounded-xl p-3 sm:p-4">
+                                    <div className="flex items-start justify-between gap-2 mb-2">
+                                        <div className="font-bold text-gray-900 text-sm break-words">{newMaterial.name}</div>
+                                        <button type="button" onClick={closeMaterialPanel} className="shrink-0 text-xs font-bold text-gray-500 hover:text-gray-800">Tutup</button>
+                                    </div>
+                                    <pre className="whitespace-pre-wrap break-words font-sans text-xs text-gray-700 max-h-72 overflow-y-auto">{newMaterial.description || 'Guru belum menuliskan kisi-kisi untuk materi ini.'}</pre>
+                                </div>
+                            )}
+
                             {!isParent && (showNewMaterial ? (
                                 <div className="mt-3 border-2 border-dashed border-indigo-200 bg-indigo-50/40 rounded-xl p-3 sm:p-4 space-y-2">
+                                    <div className="text-xs font-bold text-indigo-700 uppercase tracking-wide">
+                                        {editingMaterialId ? 'Lihat / ubah materi' : 'Materi baru'}
+                                    </div>
                                     <input
                                         type="text"
                                         value={newMaterial.name}
                                         onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
                                         maxLength={255}
                                         placeholder="Nama materi, mis. Permainan Engklek"
-                                        aria-label="Nama materi baru"
+                                        aria-label="Nama materi"
                                         className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm font-medium bg-white outline-none focus:border-indigo-400"
                                     />
                                     <textarea
                                         value={newMaterial.description}
                                         onChange={(e) => setNewMaterial({ ...newMaterial, description: e.target.value })}
-                                        rows="4"
+                                        rows={editingMaterialId ? 10 : 4}
                                         placeholder="Kisi-kisi / ringkasan materi dari buku atau slide. AI hanya memakai fakta yang tertulis di sini."
-                                        aria-label="Kisi-kisi materi baru"
+                                        aria-label="Kisi-kisi materi"
                                         className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:border-indigo-400 resize-y"
                                     />
+                                    {editingMaterialId && (
+                                        <p className="text-[11px] text-gray-500">Perubahan berlaku untuk kuis berikutnya. Soal yang sudah terbit tidak ikut berubah.</p>
+                                    )}
                                     {materialError && <p className="text-xs font-semibold text-red-600">{materialError}</p>}
                                     <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
-                                        <button type="button" onClick={() => { setShowNewMaterial(false); setMaterialError(''); }} className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-bold text-gray-600">Batal</button>
+                                        <button type="button" onClick={closeMaterialPanel} className="px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-bold text-gray-600">Batal</button>
                                         <button type="button" onClick={saveNewMaterial} disabled={savingMaterial} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold disabled:opacity-50">
-                                            {savingMaterial ? 'Menyimpan...' : 'Simpan & pilih materi'}
+                                            {savingMaterial ? 'Menyimpan...' : editingMaterialId ? 'Simpan perubahan' : 'Simpan & pilih materi'}
                                         </button>
                                     </div>
                                 </div>
                             ) : (
-                                <button type="button" onClick={() => setShowNewMaterial(true)} className="mt-2 text-sm font-bold text-indigo-600 hover:text-indigo-800">
+                                <button type="button" onClick={openNewMaterial} className="mt-2 text-sm font-bold text-indigo-600 hover:text-indigo-800">
                                     + Tambah materi baru
                                 </button>
                             ))}

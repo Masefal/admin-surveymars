@@ -73,4 +73,23 @@ class MasterDataController extends Controller
 
         return response()->json(Material::create($data), 201);
     }
+
+    public function updateMaterial(Request $request, $id)
+    {
+        $material = Material::findOrFail($id);
+
+        $data = $request->validate([
+            'name' => [
+                'required', 'string', 'max:255',
+                Rule::unique('materials')->where('subject_id', $material->subject_id)->ignore($material->id),
+            ],
+            'description' => 'nullable|string|max:10000',
+        ], [
+            'name.unique' => 'Materi dengan nama ini sudah ada di mata pelajaran tersebut.',
+        ]);
+
+        $material->update($data);
+
+        return response()->json($material);
+    }
 }

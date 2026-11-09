@@ -88,6 +88,19 @@ class MaterialPerformanceTest extends TestCase
         $this->postJson('/api/master-data/materials', ['subject_id' => $this->mapel->id, 'name' => 'Egrang'])->assertUnprocessable();
     }
 
+    public function test_guru_bisa_mengubah_kisi_kisi_materi_tetapi_orang_tua_tidak(): void
+    {
+        Sanctum::actingAs($this->ortu);
+        $this->putJson('/api/master-data/materials/'.$this->egrang->id, ['name' => 'Egrang', 'description' => 'X'])->assertForbidden();
+
+        Sanctum::actingAs($this->guru);
+        $this->putJson('/api/master-data/materials/'.$this->egrang->id, ['name' => 'Permainan Egrang', 'description' => 'Kisi-kisi baru'])->assertOk();
+        $this->assertDatabaseHas('materials', ['id' => $this->egrang->id, 'name' => 'Permainan Egrang', 'description' => 'Kisi-kisi baru']);
+
+        // Nama tidak boleh sama dengan materi lain di mapel yang sama
+        $this->putJson('/api/master-data/materials/'.$this->egrang->id, ['name' => 'Engklek'])->assertUnprocessable();
+    }
+
     public function test_generate_wajib_memilih_materi_jika_mapel_punya_materi(): void
     {
         Sanctum::actingAs($this->guru);

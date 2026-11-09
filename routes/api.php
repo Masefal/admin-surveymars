@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/master-data/classes', [MasterDataController::class, 'storeClass']);
         Route::delete('/master-data/classes/{id}', [MasterDataController::class, 'destroyClass']);
         Route::post('/master-data/materials', [MasterDataController::class, 'storeMaterial']);
+        Route::put('/master-data/materials/{id}', [MasterDataController::class, 'updateMaterial']);
 
         Route::post('/students', [StudentController::class, 'store']);
     });
