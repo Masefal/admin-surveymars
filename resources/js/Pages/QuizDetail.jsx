@@ -170,7 +170,10 @@ export default function QuizDetail() {
     const latestUniqueResults = Array.from(uniqueStudentsMap.values());
 
     const averageScore = latestUniqueResults.length > 0 ? Math.round(latestUniqueResults.reduce((acc, curr) => acc + curr.score, 0) / latestUniqueResults.length) : 0;
-    const strugglingStudents = latestUniqueResults.filter(r => r.score < 70);
+    // Siswa perlu remedial bila nilai kuis < 70 ATAU ada materi mapel ini yang masih lemah.
+    // Nilai akhir bisa 100 setelah ronde ulang, tetapi materi tetap dinilai dari percobaan pertama.
+    const weakByStudent = quiz.weak_materials_by_student || {};
+    const strugglingStudents = latestUniqueResults.filter(r => r.score < 70 || (r.student_id && weakByStudent[r.student_id]?.length));
     // Hasil lama tanpa student_id tidak bisa dijadikan target kuis personal
     const remedialCandidates = strugglingStudents.filter(r => r.student_id);
 
@@ -261,9 +264,14 @@ export default function QuizDetail() {
                                         <button
                                             key={r.student_id}
                                             onClick={() => startRemedial(r)}
-                                            className="w-full text-left px-4 py-2 text-sm font-semibold hover:bg-orange-50 flex justify-between"
+                                            className="w-full text-left px-4 py-2 text-sm font-semibold hover:bg-orange-50"
                                         >
-                                            {r.student_name} <span className="text-red-600 font-black">{r.score}</span>
+                                            <span className="flex justify-between gap-2">{r.student_name} <span className="text-red-600 font-black">{r.score}</span></span>
+                                            {weakByStudent[r.student_id]?.length > 0 && (
+                                                <span className="block text-[11px] font-medium text-red-500">
+                                                    Lemah: {weakByStudent[r.student_id].map(m => `${m.material} ${m.percent}%`).join(', ')}
+                                                </span>
+                                            )}
                                         </button>
                                     ))}
                                 </div>

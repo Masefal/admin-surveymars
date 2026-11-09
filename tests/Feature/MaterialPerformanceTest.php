@@ -111,6 +111,15 @@ class MaterialPerformanceTest extends TestCase
         ])->assertStatus(422)->assertJsonFragment(['error' => 'Pilih minimal satu materi supaya hasil kuis bisa dianalisis per materi.']);
     }
 
+    public function test_detail_kuis_menyertakan_materi_lemah_per_siswa(): void
+    {
+        Sanctum::actingAs($this->guru);
+
+        $weak = $this->getJson('/api/quizzes/'.$this->quiz->id)->assertOk()->json('weak_materials_by_student.'.$this->anak->id);
+        // Engklek 50% lemah; soal tanpa materi tidak ikut karena bukan materi
+        $this->assertSame(['Engklek'], collect($weak)->pluck('material')->all());
+    }
+
     public function test_soal_wajib_punya_materi_jika_mapel_punya_materi(): void
     {
         Sanctum::actingAs($this->guru);

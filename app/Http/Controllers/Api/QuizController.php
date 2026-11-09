@@ -7,6 +7,7 @@ use App\Models\Material;
 use App\Models\Quiz;
 use App\Models\Question;
 use App\Models\Student;
+use App\Services\MaterialPerformance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -114,6 +115,17 @@ class QuizController extends Controller
         }]);
 
         $quiz->setAttribute('can_manage', $user->can('update', $quiz));
+
+        // Materi lemah tiap siswa di mapel kuis ini, supaya kandidat remedial tidak hanya
+        // ditentukan dari nilai total kuis (siswa bisa lulus kuis tetapi lemah di satu materi).
+        $performance = app(MaterialPerformance::class)->forStudents($quiz->studentResults->pluck('student_id'));
+        $subjectName = $quiz->subject?->name;
+        $quiz->setAttribute('weak_materials_by_student', collect($performance)->map(
+            fn ($items) => collect(MaterialPerformance::weak($items))
+                ->filter(fn ($m) => $m['material_id'] && $m['subject'] === $subjectName)
+                ->map(fn ($m) => ['material_id' => $m['material_id'], 'material' => $m['material'], 'percent' => $m['percent']])
+                ->values()
+        )->filter(fn ($items) => $items->isNotEmpty()));
 
         return response()->json($quiz);
     }
