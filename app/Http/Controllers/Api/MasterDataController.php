@@ -73,12 +73,4 @@ class MasterDataController extends Controller
 
         return response()->json(Material::create($data), 201);
     }
-
-    public function destroyMaterial($id)
-    {
-        // Soal yang memakai materi ini tetap ada; material_id-nya menjadi kosong (nullOnDelete)
-        Material::destroy($id);
-
-        return response()->json(['message' => 'Materi berhasil dihapus']);
-    }
 }
