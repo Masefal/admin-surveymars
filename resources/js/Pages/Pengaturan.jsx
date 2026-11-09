@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
 import { User, Lock, CheckCircle2 } from 'lucide-react';
+import PasswordInput from '../Components/PasswordInput';
 
 export default function Pengaturan() {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -92,11 +93,11 @@ export default function Pengaturan() {
                             <div className="mt-4 space-y-3 pt-3 border-t border-gray-200/60">
                                 <div>
                                     <label className="text-xs font-bold text-gray-500">Password Lama</label>
-                                    <input type="password" placeholder="Masukkan password lama..." value={formData.current_password} onChange={(e) => setFormData({...formData, current_password: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 outline-none focus:border-[#1b6d39] text-sm mt-1" />
+                                    <PasswordInput placeholder="Masukkan password lama..." autoComplete="current-password" value={formData.current_password} onChange={(e) => setFormData({...formData, current_password: e.target.value})} wrapperClassName="mt-1" className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 outline-none focus:border-[#1b6d39] text-sm" />
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold text-gray-500">Password Baru</label>
-                                    <input type="password" placeholder="Minimal 6 karakter" value={formData.new_password} onChange={(e) => setFormData({...formData, new_password: e.target.value})} className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 outline-none focus:border-[#1b6d39] text-sm mt-1" />
+                                    <PasswordInput placeholder="Minimal 6 karakter" autoComplete="new-password" value={formData.new_password} onChange={(e) => setFormData({...formData, new_password: e.target.value})} wrapperClassName="mt-1" className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 outline-none focus:border-[#1b6d39] text-sm" />
                                 </div>
                             </div>
                         )}

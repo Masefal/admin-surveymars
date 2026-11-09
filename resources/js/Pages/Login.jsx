@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BookOpen, ArrowRight, Loader2, UserPlus } from 'lucide-react';
+import PasswordInput from '../Components/PasswordInput';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -71,7 +72,7 @@ export default function Login() {
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-gray-900 mb-2">Password</label>
-                            <input type="password" name="password" required placeholder="Minimal 6 karakter" onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] outline-none" />
+                            <PasswordInput name="password" required placeholder="Minimal 6 karakter" autoComplete={isRegister ? 'new-password' : 'current-password'} onChange={handleChange} className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] outline-none" />
                         </div>
 
                         <button type="submit" disabled={loading} className="w-full bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold rounded-xl py-4 flex justify-center items-center gap-2 transition-all">
