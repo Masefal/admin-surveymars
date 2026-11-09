@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatDuration } from '../format';
+import { formatDuration, latestPerQuiz } from '../format';
 import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
@@ -23,7 +23,9 @@ export default function StudentReport() {
     if (loading) return <AdminLayout><div className="p-10 text-center text-gray-500 font-bold flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1b6d39]"></div></div></AdminLayout>;
     if (!data || !data.student) return <AdminLayout><div className="p-10 text-center font-bold text-red-500">Data siswa tidak ditemukan.</div></AdminLayout>;
 
-    const { student, history } = data;
+    const { student } = data;
+    // Ronde ulang dari kuis yang sama digabung: tampilkan hasil terakhir per kuis
+    const history = latestPerQuiz(data.history || []);
     const materials = data.material_performance || [];
     const weakMaterials = data.needs_attention || [];
     const totalQuizzes = history.length;
@@ -92,7 +94,10 @@ export default function StudentReport() {
                         <tbody>
                             {history.length > 0 ? history.map((res, idx) => (
                                 <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50/50 text-sm">
-                                    <td className="p-4 font-bold text-gray-900">{res.quiz?.title || 'Kuis Dihapus'}</td>
+                                    <td className="p-4 font-bold text-gray-900">
+                                        {res.quiz?.title || 'Kuis Dihapus'}
+                                        {res.rounds > 1 && <span className="ml-2 text-[11px] font-semibold text-gray-400">({res.rounds} ronde)</span>}
+                                    </td>
                                     <td className="p-4 text-gray-600">{res.quiz?.subject?.name || '-'}</td>
                                     <td className="p-4 text-center text-gray-500">
                                         <div className="flex items-center justify-center gap-1.5">

@@ -111,6 +111,21 @@ class MaterialPerformanceTest extends TestCase
         ])->assertStatus(422)->assertJsonFragment(['error' => 'Pilih minimal satu materi supaya hasil kuis bisa dianalisis per materi.']);
     }
 
+    public function test_soal_wajib_punya_materi_jika_mapel_punya_materi(): void
+    {
+        Sanctum::actingAs($this->guru);
+        $soal = ['question_text' => 'Tanpa materi?', 'options' => [['option_text' => 'Ya', 'is_correct' => true], ['option_text' => 'Tidak', 'is_correct' => false]]];
+
+        $this->postJson('/api/quizzes', [
+            'quizInfo' => ['subject_id' => $this->mapel->id, 'student_class_id' => $this->anak->student_class_id, 'topik' => 'X'],
+            'questions' => [$soal],
+        ])->assertJsonValidationErrors('questions.0.material_id');
+
+        // Tambah soal manual di Detail Kuis juga wajib memilih materi
+        $this->postJson('/api/quizzes/'.$this->quiz->id.'/questions', $soal)->assertJsonValidationErrors('material_id');
+        $this->postJson('/api/quizzes/'.$this->quiz->id.'/questions', $soal + ['material_id' => $this->engklek->id])->assertOk();
+    }
+
     public function test_simpan_kuis_menyimpan_materi_per_soal(): void
     {
         Sanctum::actingAs($this->guru);

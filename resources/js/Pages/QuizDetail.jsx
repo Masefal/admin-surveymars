@@ -29,10 +29,28 @@ export default function QuizDetail() {
         ]
     });
 
+    const [materials, setMaterials] = useState([]);
+
     const fetchDetail = () => {
         axios.get(`/api/quizzes/${id}`)
             .then(response => { setQuiz(response.data); setLoading(false); })
             .catch(() => setLoading(false));
+    };
+
+    // Materi mapel kuis ini, untuk memilih materi saat menambah/mengubah soal manual
+    useEffect(() => {
+        if (!quiz?.subject_id) return;
+        axios.get('/api/master-data')
+            .then(res => setMaterials((res.data.materials || []).filter(m => m.subject_id === quiz.subject_id)))
+            .catch(() => setMaterials([]));
+    }, [quiz?.subject_id]);
+
+    // Materi yang paling banyak dipakai di kuis ini menjadi pilihan awal soal baru
+    const defaultMaterialId = () => {
+        const counts = {};
+        (quiz?.questions || []).forEach(q => { if (q.material_id) counts[q.material_id] = (counts[q.material_id] || 0) + 1; });
+        const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+        return top ? parseInt(top[0]) : (materials.length === 1 ? materials[0].id : '');
     };
 
     useEffect(() => {
@@ -79,6 +97,7 @@ export default function QuizDetail() {
         setFormMode('add');
         setFormData({
             id: null,
+            material_id: defaultMaterialId(),
             question_text: '',
             options: [
                 { option_text: '', is_correct: true },
@@ -94,6 +113,7 @@ export default function QuizDetail() {
         setFormMode('edit');
         setFormData({
             id: question.id,
+            material_id: question.material_id || '',
             question_text: question.question_text,
             options: question.options.map(opt => ({ option_text: opt.option_text, is_correct: opt.is_correct }))
         });
@@ -117,16 +137,18 @@ export default function QuizDetail() {
     const saveQuestion = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
+        const payload = { ...formData, material_id: formData.material_id ? parseInt(formData.material_id) : null };
         try {
             if (formMode === 'add') {
-                await axios.post(`/api/quizzes/${id}/questions`, formData);
+                await axios.post(`/api/quizzes/${id}/questions`, payload);
             } else {
-                await axios.put(`/api/questions/${formData.id}`, formData);
+                await axios.put(`/api/questions/${formData.id}`, payload);
             }
             setIsModalOpen(false);
             fetchDetail();
         } catch (error) {
-            alert('Gagal menyimpan soal.');
+            const errors = error.response?.data?.errors;
+            alert(errors ? Object.values(errors).flat()[0] : 'Gagal menyimpan soal.');
         } finally {
             setIsSubmitting(false);
         }
@@ -448,6 +470,20 @@ export default function QuizDetail() {
                             <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 mb-6">{formMode === 'add' ? 'Tambah Soal Baru' : 'Edit Soal'}</h2>
                             
                             <form onSubmit={saveQuestion} className="space-y-6">
+                                {materials.length > 0 && (
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2">Materi Soal</label>
+                                        <select
+                                            required
+                                            value={formData.material_id || ''}
+                                            onChange={(e) => setFormData({ ...formData, material_id: e.target.value })}
+                                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-white outline-none focus:border-[#1b6d39] text-sm"
+                                        >
+                                            <option value="">-- Pilih materi --</option>
+                                            {materials.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                        </select>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">Pertanyaan</label>
                                     <textarea 

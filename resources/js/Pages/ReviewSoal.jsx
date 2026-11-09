@@ -16,6 +16,8 @@ export default function ReviewSoal() {
 
     const { quizInfo, generatedQuestions: initialQuestions } = location.state || {};
     const [questions, setQuestions] = useState(initialQuestions || []);
+    // Setiap soal wajib punya materi supaya nilainya masuk analisis per materi
+    const missingMaterialCount = quizInfo?.materials?.length ? questions.filter(q => !q.material_id).length : 0;
 
     const [editingIndex, setEditingIndex] = useState(null);
     const [editForm, setEditForm] = useState(null);
@@ -233,11 +235,13 @@ export default function ReviewSoal() {
 
             <div className="fixed bottom-0 right-0 left-0 lg:left-64 bg-white/95 backdrop-blur-md border-t border-gray-200 p-3 sm:p-4 px-4 sm:px-8 flex flex-col sm:flex-row justify-between items-center z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] gap-3">
                 <div className="text-xs sm:text-sm text-gray-500 font-medium text-center sm:text-left">
-                    <strong className="text-gray-900">{questions.length}</strong> soal siap dipublikasikan
+                    {missingMaterialCount > 0
+                        ? <span className="text-red-600 font-bold">{missingMaterialCount} soal belum dipilih materinya</span>
+                        : <><strong className="text-gray-900">{questions.length}</strong> soal siap dipublikasikan</>}
                 </div>
                 <div className="flex w-full sm:w-auto gap-2 sm:gap-4 justify-end">
                     <button onClick={() => navigate('/generate')} className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 rounded-xl border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 transition-colors text-xs sm:text-sm">Batal</button>
-                    <button onClick={handlePublish} disabled={isPublishing || editingIndex !== null} className="flex-1 sm:flex-none px-5 sm:px-8 py-2.5 rounded-xl bg-[#1b6d39] text-white font-bold hover:bg-[#14532b] transition-colors flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:shadow-none text-xs sm:text-sm">
+                    <button onClick={handlePublish} disabled={isPublishing || editingIndex !== null || missingMaterialCount > 0} className="flex-1 sm:flex-none px-5 sm:px-8 py-2.5 rounded-xl bg-[#1b6d39] text-white font-bold hover:bg-[#14532b] transition-colors flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:bg-gray-400 disabled:shadow-none text-xs sm:text-sm">
                         {isPublishing ? 'Menyimpan...' : 'Publikasikan Sekarang'} <ArrowRight size={16} />
                     </button>
                 </div>

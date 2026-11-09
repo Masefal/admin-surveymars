@@ -157,20 +157,46 @@ class RetakeRoundTest extends TestCase
         $this->assertSame('Pembahasan 2', $wrong['explanation']);
     }
 
-    public function test_performa_materi_memakai_jawaban_terakhir_per_soal(): void
+    private function performance(): \Illuminate\Support\Collection
+    {
+        return collect(app(MaterialPerformance::class)->forStudents([$this->siswa->id])[$this->siswa->id])->keyBy('material');
+    }
+
+    public function test_ronde_ulang_tidak_menghapus_tanda_materi_lemah(): void
     {
         $this->submit([0 => true, 1 => true, 2 => false, 3 => false]);
+        $this->assertSame(0, $this->performance()['Engklek']['percent']);
 
-        $before = collect(app(MaterialPerformance::class)->forStudents([$this->siswa->id])[$this->siswa->id])->keyBy('material');
-        $this->assertSame(0, $before['Engklek']['percent']);
-        $this->assertTrue($before['Engklek']['needs_attention']);
-
-        // Ronde 2: kedua soal engklek kini benar
+        // Ronde 2 benar semua (bisa jadi hasil menebak/eliminasi) -> tanda lemah tetap ada
         $this->submit([2 => true, 3 => true]);
+        $after = $this->performance();
+        $this->assertSame(0, $after['Engklek']['percent']);
+        $this->assertTrue($after['Engklek']['needs_attention']);
+        $this->assertSame(100, $after['Egrang']['percent']);
+    }
 
-        $after = collect(app(MaterialPerformance::class)->forStudents([$this->siswa->id])[$this->siswa->id])->keyBy('material');
+    public function test_kuis_baru_yang_lulus_menghapus_tanda_materi_lemah(): void
+    {
+        $this->submit([0 => true, 1 => true, 2 => false, 3 => false]);
+        $this->assertTrue($this->performance()['Engklek']['needs_attention']);
+
+        // Kuis remedial baru khusus engklek dengan soal berbeda, dijawab benar
+        $remedial = Quiz::create([
+            'user_id' => $this->quiz->user_id, 'subject_id' => $this->quiz->subject_id, 'student_class_id' => $this->quiz->student_class_id,
+            'target_student_id' => $this->siswa->id, 'title' => 'Remedial Engklek', 'share_code' => 'REMED', 'status' => 'active', 'time_limit_minutes' => 30,
+        ]);
+        $q = Question::create(['quiz_id' => $remedial->id, 'material_id' => $this->engklek->id, 'question_text' => 'Engklek baru', 'type' => 'multiple_choice', 'points' => 10]);
+        $benar = Option::create(['question_id' => $q->id, 'option_text' => 'Benar', 'is_correct' => true]);
+        Option::create(['question_id' => $q->id, 'option_text' => 'Salah', 'is_correct' => false]);
+
+        $this->postJson('/api/student/quiz/REMED/submit', $this->identity() + [
+            'time_spent_seconds' => 10, 'answers' => [['question_id' => $q->id, 'option_id' => $benar->id]],
+        ])->assertCreated();
+
+        $after = $this->performance();
         $this->assertSame(100, $after['Engklek']['percent']);
         $this->assertFalse($after['Engklek']['needs_attention']);
+        // Materi lain tetap memakai kuis terakhir yang memuatnya
         $this->assertSame(100, $after['Egrang']['percent']);
     }
 }

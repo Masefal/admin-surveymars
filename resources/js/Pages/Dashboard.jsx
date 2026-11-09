@@ -5,7 +5,7 @@ import AdminLayout from '../Layouts/AdminLayout';
 import { Plus, ArrowRight, CheckCircle2, BarChart2, Sparkles, UserCheck, AlertCircle, PlayCircle } from 'lucide-react';
 import StatCard from '../Components/StatCard';
 import QuizTypeBadge from '../Components/QuizTypeBadge';
-import { formatDuration } from '../format';
+import { formatDuration, latestPerQuiz } from '../format';
 import QuizRow from '../Components/QuizRow';
 import ActivityItem from '../Components/ActivityItem';
 
@@ -76,7 +76,7 @@ export default function Dashboard() {
 
     // ================= DASBOR KHUSUS ORANG TUA =================
     if (isParent) {
-        const scores = childResults.map(r => r.score);
+        const scores = latestPerQuiz(childResults).map(r => r.score);
         const parentStats = {
             average: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0,
             lowCount: scores.filter(s => s < 70).length,
@@ -139,7 +139,7 @@ export default function Dashboard() {
                                 </div>
                             </div>
                             <StatCard title="Rata-rata Nilai" value={parentStats.average} subtitle={parentStats.average >= 75 ? 'Sudah baik' : 'Perlu latihan'} subtitleColor={parentStats.average >= 75 ? 'text-[#1b6d39]' : 'text-[#F2994A]'} />
-                            <StatCard title="Kuis Dikerjakan" value={childResults.length} subtitle="Total pengerjaan" subtitleColor="text-[#1b6d39]" />
+                            <StatCard title="Kuis Dikerjakan" value={latestPerQuiz(childResults).length} subtitle={`${childResults.length} kali pengerjaan (termasuk ronde ulang)`} subtitleColor="text-[#1b6d39]" />
                             <StatCard title="Belum Dikerjakan" value={pendingQuizzes.length} subtitle="Kuis aktif untuk anak" subtitleColor="text-[#F2994A]" />
                         </div>
 

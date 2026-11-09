@@ -39,9 +39,12 @@ class MaterialPerformance
             ->keyBy('id');
 
         $buckets = [];
-        // Satu soal bisa dikerjakan ulang (ronde ulang / kesempatan berikutnya);
-        // yang dihitung hanya jawaban TERAKHIR siswa untuk soal itu.
-        $latestAnswer = [];
+        // Aturan penilaian materi:
+        // 1. Per soal, yang dihitung hanya PERCOBAAN PERTAMA. Ronde ulang soal yang sama tidak
+        //    menghapus kelemahan, karena jawaban bisa ditebak dengan eliminasi pilihan.
+        // 2. Per materi, dipakai kuis TERBARU yang memuat materi itu. Jadi kelemahan hilang kalau
+        //    siswa lulus kuis baru (mis. kuis remedial dengan soal berbeda), bukan karena menebak ulang.
+        $firstAnswer = []; // [student][quiz][question] => [group, correct, resultId]
 
         foreach ($results->sortBy('id') as $result) {
             $fallback = [
@@ -69,16 +72,30 @@ class MaterialPerformance
                 ] : $fallback;
 
                 if (isset($answer['question_id'])) {
-                    $latestAnswer[$result->student_id][$answer['question_id']] = [$group, ! empty($answer['is_correct'])];
+                    $firstAnswer[$result->student_id][$result->quiz_id][$answer['question_id']]
+                        ??= [$group, ! empty($answer['is_correct']), $result->id];
                 } else {
                     $this->add($buckets, $result->student_id, $group, ! empty($answer['is_correct']) ? 1 : 0, 1);
                 }
             }
         }
 
-        foreach ($latestAnswer as $studentId => $byQuestion) {
-            foreach ($byQuestion as [$group, $correct]) {
-                $this->add($buckets, $studentId, $group, $correct ? 1 : 0, 1);
+        foreach ($firstAnswer as $studentId => $byQuiz) {
+            // Kumpulkan per materi per kuis, lalu ambil kuis terbaru untuk tiap materi
+            $perGroupQuiz = [];
+            foreach ($byQuiz as $quizId => $byQuestion) {
+                foreach ($byQuestion as [$group, $correct, $resultId]) {
+                    $slot = &$perGroupQuiz[$group['key']][$quizId];
+                    $slot ??= ['group' => $group, 'correct' => 0, 'total' => 0, 'order' => $resultId];
+                    $slot['correct'] += $correct ? 1 : 0;
+                    $slot['total'] += 1;
+                    $slot['order'] = min($slot['order'], $resultId);
+                    unset($slot);
+                }
+            }
+            foreach ($perGroupQuiz as $quizzes) {
+                $latest = collect($quizzes)->sortByDesc('order')->first();
+                $this->add($buckets, $studentId, $latest['group'], $latest['correct'], $latest['total']);
             }
         }
 

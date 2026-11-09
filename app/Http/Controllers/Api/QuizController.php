@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Material;
 use App\Models\Quiz;
 use App\Models\Question;
 use App\Models\Student;
@@ -68,6 +69,7 @@ class QuizController extends Controller
 
         foreach ($request->input('questions') as $index => $q) {
             $this->ensureOneCorrectOption($q['options'], 'questions.' . $index . '.options');
+            $this->ensureMaterial($quizInfo['subject_id'], $q['material_id'] ?? null, 'questions.' . $index . '.material_id', $index + 1);
         }
 
         $quiz = DB::transaction(function () use ($request, $user, $quizInfo, $classId, $target) {
@@ -158,6 +160,7 @@ class QuizController extends Controller
 
         $data = $request->validate($this->questionRules());
         $this->ensureOneCorrectOption($data['options'], 'options');
+        $this->ensureMaterial($quiz->subject_id, $data['material_id'] ?? null, 'material_id');
 
         DB::transaction(fn () => $this->createQuestion($quiz, $data));
 
@@ -171,6 +174,9 @@ class QuizController extends Controller
 
         $data = $request->validate($this->questionRules());
         $this->ensureOneCorrectOption($data['options'], 'options');
+        if (array_key_exists('material_id', $data)) {
+            $this->ensureMaterial($question->quiz->subject_id, $data['material_id'], 'material_id');
+        }
 
         DB::transaction(function () use ($question, $data) {
             $question->update([
@@ -207,6 +213,23 @@ class QuizController extends Controller
             $prefix . 'options.*.option_text' => 'required|string|max:255',
             $prefix . 'options.*.is_correct' => 'required|boolean',
         ];
+    }
+
+    /**
+     * Kalau mapel sudah punya materi, setiap soal wajib terikat ke salah satu materi mapel itu
+     * supaya nilainya masuk analisis per materi.
+     */
+    private function ensureMaterial($subjectId, $materialId, string $field, ?int $number = null): void
+    {
+        if (! Material::where('subject_id', $subjectId)->exists()) {
+            return;
+        }
+
+        if (! $materialId || ! Material::whereKey($materialId)->where('subject_id', $subjectId)->exists()) {
+            throw ValidationException::withMessages([
+                $field => [($number ? "Soal nomor {$number}: " : '').'pilih materi soal ini terlebih dahulu.'],
+            ]);
+        }
     }
 
     private function ensureOneCorrectOption(array $options, string $field): void

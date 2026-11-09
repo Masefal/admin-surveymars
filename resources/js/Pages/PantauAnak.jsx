@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatDuration, onlyDigits } from '../format';
+import { formatDuration, onlyDigits, latestPerQuiz } from '../format';
 import axios from 'axios';
 import { Link as LinkIcon, AlertCircle, Loader2, User, FileText, CheckCircle2, XCircle, Clock, BarChart2, TrendingDown, Award } from 'lucide-react';
 import AdminLayout from '../Layouts/AdminLayout';
@@ -100,9 +100,11 @@ export default function PantauAnak() {
     );
 
     const getAcademicStats = () => {
-        if (!results.length) return { average: 0 };
-        const totalScore = results.reduce((acc, curr) => acc + curr.score, 0);
-        return { average: Math.round(totalScore / results.length) };
+        // Ronde ulang dari kuis yang sama tidak dihitung sebagai kuis terpisah
+        const latest = latestPerQuiz(results);
+        if (!latest.length) return { average: 0 };
+        const totalScore = latest.reduce((acc, curr) => acc + curr.score, 0);
+        return { average: Math.round(totalScore / latest.length) };
     };
 
     if (loading) {
@@ -247,11 +249,11 @@ export default function PantauAnak() {
                                 </thead>
                                 <tbody>
                                     {results.length > 0 ? (
-                                        results.map((result) => (
+                                        latestPerQuiz(results).map((result) => (
                                             <tr key={result.id} className="bg-white border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                                                 <td className="px-6 py-4 font-bold text-gray-900">
                                                     <span className="block">{result.quiz?.title || 'Kuis tidak diketahui'}</span>
-                                                    <span className="text-xs text-gray-400 font-medium">{result.quiz?.subject?.name || 'Umum'}</span>
+                                                    <span className="text-xs text-gray-400 font-medium">{result.quiz?.subject?.name || 'Umum'}{result.rounds > 1 ? ` · ${result.rounds} ronde` : ''}</span>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
                                                     <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full font-black ${result.score >= 70 ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
