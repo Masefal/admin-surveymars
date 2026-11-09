@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatDuration } from '../format';
+import { formatDuration, onlyDigits } from '../format';
 import axios from 'axios';
 import { Link as LinkIcon, AlertCircle, Loader2, User, FileText, CheckCircle2, XCircle, Clock, BarChart2, TrendingDown, Award } from 'lucide-react';
 import AdminLayout from '../Layouts/AdminLayout';
@@ -66,9 +66,12 @@ export default function PantauAnak() {
             <div className="mb-3">
                 <input
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={10}
                     value={nisn}
-                    onChange={(e) => setNisn(e.target.value)}
-                    placeholder="Masukkan NISN Anak"
+                    onChange={(e) => setNisn(onlyDigits(e.target.value).slice(0, 10))}
+                    placeholder="Masukkan NISN Anak (angka)"
                     required
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] focus:ring-0 outline-none font-medium text-gray-700 text-center tracking-widest"
                 />

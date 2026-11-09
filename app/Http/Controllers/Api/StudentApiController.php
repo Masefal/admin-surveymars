@@ -255,9 +255,12 @@ class StudentApiController extends Controller
      */
     private function resolveStudent(Request $request, Quiz $quiz): Student
     {
+        $request->merge(['nisn' => trim((string) $request->nisn)]);
         $request->validate([
             'student_id' => 'required|integer',
-            'nisn' => 'required|string',
+            'nisn' => 'required|regex:/^[0-9]+$/|max:10',
+        ], [
+            'nisn.regex' => 'NISN hanya berisi angka.',
         ]);
 
         $student = $quiz->eligibleStudents()->whereKey($request->student_id)->first();

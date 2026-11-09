@@ -73,6 +73,25 @@ class RetakeRoundTest extends TestCase
         return $this->postJson($this->url('/submit'), $this->identity() + ['time_spent_seconds' => 30, 'answers' => $answers]);
     }
 
+    public function test_nisn_hanya_boleh_angka(): void
+    {
+        $this->postJson($this->url('/verify'), ['student_id' => $this->siswa->id, 'nisn' => '11a'])
+            ->assertUnprocessable()->assertJsonValidationErrors('nisn');
+
+        $guru = User::where('role', 'guru')->first();
+        \Laravel\Sanctum\Sanctum::actingAs($guru);
+        $kelasId = $this->siswa->student_class_id;
+
+        $this->postJson('/api/students', ['name' => 'A', 'nisn' => '12345abcde', 'student_class_id' => $kelasId])
+            ->assertUnprocessable()->assertJsonValidationErrors('nisn');
+        $this->postJson('/api/students', ['name' => 'A', 'nisn' => '12345', 'student_class_id' => $kelasId])
+            ->assertUnprocessable()->assertJsonValidationErrors('nisn');
+        $this->postJson('/api/students', ['name' => 'A', 'nisn' => '0012345678', 'student_class_id' => $kelasId])
+            ->assertCreated();
+        // NISN disimpan sebagai teks supaya angka nol di depan tidak hilang
+        $this->assertDatabaseHas('students', ['nisn' => '0012345678']);
+    }
+
     public function test_ronde_ulang_hanya_berisi_soal_yang_masih_salah(): void
     {
         // Ronde 1: semua soal

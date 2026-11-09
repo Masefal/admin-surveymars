@@ -8,3 +8,6 @@ export const formatDuration = (seconds) => {
     if (rest === 0) return `${minutes} mnt`;
     return `${minutes} mnt ${rest} dtk`;
 };
+
+// Buang semua karakter selain angka (dipakai untuk input NISN)
+export const onlyDigits = (value) => String(value ?? '').replace(/\D/g, '');

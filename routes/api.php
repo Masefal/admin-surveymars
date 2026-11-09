@@ -53,6 +53,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/master-data/materials/{id}', [MasterDataController::class, 'updateMaterial']);
 
         Route::post('/students', [StudentController::class, 'store']);
+        Route::put('/students/{id}', [StudentController::class, 'update']);
+        Route::delete('/students/{id}', [StudentController::class, 'destroy']);
     });
 
     Route::middleware('role:orang_tua')->group(function () {

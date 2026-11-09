@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BookOpen, Clock, KeyRound, Loader2, PlayCircle, RotateCcw, User } from 'lucide-react';
 import { startRound, verifyErrorMessage } from '../studentRound';
+import { onlyDigits } from '../format';
 
 export default function StudentLanding() {
     const { quizId } = useParams();
@@ -120,7 +121,8 @@ export default function StudentLanding() {
                                     <KeyRound size={16} /> NISN Kamu
                                 </label>
                                 <input
-                                    type="text" inputMode="numeric" value={nisn} onChange={(e) => setNisn(e.target.value)}
+                                    type="text" inputMode="numeric" pattern="[0-9]*" maxLength={10} autoComplete="off"
+                                    value={nisn} onChange={(e) => setNisn(onlyDigits(e.target.value).slice(0, 10))}
                                     placeholder="Ketik NISN kamu"
                                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 sm:py-3.5 focus:border-[#1b6d39] focus:ring-0 outline-none transition-colors bg-white font-medium text-gray-700 text-sm tracking-widest"
                                 />

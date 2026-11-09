@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Quiz;
 use App\Models\Student;
 use App\Models\StudentResult;
 use App\Services\MaterialPerformance;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class StudentController extends Controller
@@ -36,10 +38,14 @@ class StudentController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge(['nisn' => trim((string) $request->nisn)]);
         $request->validate([
             'name' => 'required|string|max:255',
-            'nisn' => 'required|string|unique:students,nisn',
+            'nisn' => 'required|digits:10|unique:students,nisn',
             'student_class_id' => 'required|exists:student_classes,id'
+        ], [
+            'nisn.digits' => 'NISN harus berupa 10 angka.',
+            'nisn.unique' => 'NISN ini sudah terdaftar.',
         ]);
 
         $student = Student::create([
@@ -49,6 +55,46 @@ class StudentController extends Controller
         ]);
 
         return response()->json(['message' => 'Siswa berhasil ditambahkan', 'student' => $student], 201);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $student = Student::findOrFail($id);
+
+        $request->merge(['nisn' => trim((string) $request->nisn)]);
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'nisn' => 'required|digits:10|unique:students,nisn,'.$student->id,
+            'student_class_id' => 'required|exists:student_classes,id',
+        ], [
+            'nisn.digits' => 'NISN harus berupa 10 angka.',
+            'nisn.unique' => 'NISN ini sudah terdaftar.',
+        ]);
+
+        DB::transaction(function () use ($student, $data) {
+            // Kuis personal selalu mengikuti kelas siswanya
+            if ((int) $data['student_class_id'] !== (int) $student->student_class_id) {
+                Quiz::where('target_student_id', $student->id)->update(['student_class_id' => $data['student_class_id']]);
+            }
+            $student->update($data);
+        });
+
+        return response()->json(['message' => 'Data siswa diperbarui', 'student' => $student->load('studentClass')]);
+    }
+
+    public function destroy($id)
+    {
+        $student = Student::findOrFail($id);
+
+        DB::transaction(function () use ($student) {
+            // Kuis personal untuk siswa ini ikut dihapus; kalau tidak, target_student_id menjadi null
+            // dan kuis itu berubah menjadi kuis untuk seluruh kelas.
+            Quiz::where('target_student_id', $student->id)->delete();
+            // Riwayat nilai ikut terhapus lewat foreign key cascade
+            $student->delete();
+        });
+
+        return response()->json(['message' => 'Siswa berhasil dihapus']);
     }
 
     public function report($id, MaterialPerformance $performance)
@@ -73,9 +119,12 @@ class StudentController extends Controller
 
     public function linkChild(Request $request)
     {
+        $request->merge(['nisn' => trim((string) $request->nisn)]);
         $request->validate([
-            'nisn' => 'required|string',
+            'nisn' => 'required|regex:/^[0-9]+$/|max:10',
             'name' => 'required|string',
+        ], [
+            'nisn.regex' => 'NISN hanya berisi angka.',
         ]);
 
         $student = Student::where('nisn', trim($request->nisn))->first();
