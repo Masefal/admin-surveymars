@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import AdminLayout from '../Layouts/AdminLayout';
 import { Users, Loader2, BarChart2, Plus, X, Pencil, Trash2 } from 'lucide-react';
 import { NeedsAttentionNote, PASSING_PERCENT } from '../Components/MaterialPerformance';
-import { onlyDigits } from '../format';
+import { nisInput } from '../format';
+import ClassPicker from '../Components/ClassPicker';
 
 const EMPTY_FORM = { name: '', nisn: '', student_class_id: '' };
 
@@ -72,13 +73,17 @@ export default function StudentManagement() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: name === 'nisn' ? onlyDigits(value).slice(0, 10) : value });
+        setFormData({ ...formData, [name]: name === 'nisn' ? nisInput(value) : value });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (formData.nisn.length !== 10) {
-            setFormError('NISN harus berupa 10 angka.');
+        if (!/^[0-9]+(\.[0-9]+)*$/.test(formData.nisn)) {
+            setFormError('NIS hanya berisi angka dan titik, contoh 2324.01.003.');
+            return;
+        }
+        if (!formData.student_class_id) {
+            setFormError('Pilih level dan kelas siswa.');
             return;
         }
         setSubmitting(true);
@@ -180,7 +185,7 @@ export default function StudentManagement() {
                             <li key={student.id} className="p-4 space-y-3">
                                 <div className="min-w-0">
                                     <div className="font-bold text-gray-900 break-words">{student.name}</div>
-                                    <div className="text-xs text-gray-500 mt-0.5">NISN {student.nisn || '-'} · {student.student_class?.name || '-'}</div>
+                                    <div className="text-xs text-gray-500 mt-0.5">NIS {student.nisn || '-'} · {student.student_class?.name || '-'}</div>
                                 </div>
                                 <NeedsAttentionNote items={student.needs_attention || []} hasData={(student.material_performance || []).length > 0} />
                                 {actionButtons(student, true)}
@@ -193,7 +198,7 @@ export default function StudentManagement() {
                         <table className="w-full text-sm text-left text-gray-500">
                             <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-100">
                                 <tr>
-                                    <th scope="col" className="px-4 lg:px-6 py-4 whitespace-nowrap">NISN</th>
+                                    <th scope="col" className="px-4 lg:px-6 py-4 whitespace-nowrap">NIS</th>
                                     <th scope="col" className="px-4 lg:px-6 py-4 whitespace-nowrap">Nama Siswa</th>
                                     <th scope="col" className="px-4 lg:px-6 py-4 whitespace-nowrap">Kelas</th>
                                     <th scope="col" className="px-4 lg:px-6 py-4 min-w-[240px]">Materi Perlu Perhatian</th>
@@ -244,20 +249,19 @@ export default function StudentManagement() {
                         </div>
                         <form onSubmit={handleSubmit} className="p-5 space-y-4">
                             <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-1.5">NISN</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1.5">NIS</label>
                                 <input
                                     type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]{10}"
-                                    maxLength={10}
+                                    inputMode="decimal"
+                                    maxLength={20}
                                     name="nisn"
                                     value={formData.nisn}
                                     onChange={handleChange}
-                                    placeholder="Masukkan 10 digit NISN"
+                                    placeholder="Contoh: 2324.01.003"
                                     required
                                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#1b6d39] outline-none tracking-widest"
                                 />
-                                <p className="text-[11px] text-gray-400 mt-1">Hanya angka, {formData.nisn.length}/10 digit.</p>
+                                <p className="text-[11px] text-gray-400 mt-1">NIS sekolah, angka dan titik sesuai daftar hadir.</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5">Nama Lengkap</label>
@@ -273,18 +277,12 @@ export default function StudentManagement() {
                             </div>
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-1.5">Kelas</label>
-                                <select
-                                    name="student_class_id"
+                                <ClassPicker
+                                    classes={classes}
                                     value={formData.student_class_id}
-                                    onChange={handleChange}
+                                    onChange={(id) => setFormData(f => ({ ...f, student_class_id: id }))}
                                     required
-                                    className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-[#1b6d39] outline-none bg-white"
-                                >
-                                    <option value="">-- Pilih Kelas --</option>
-                                    {classes.map(c => (
-                                        <option key={c.id} value={c.id}>{c.name}</option>
-                                    ))}
-                                </select>
+                                />
                             </div>
                             {formError && <p className="text-sm font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl p-3">{formError}</p>}
                             <div className="pt-2">

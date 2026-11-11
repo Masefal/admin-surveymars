@@ -67,14 +67,14 @@ class StudentCrudTest extends TestCase
         $this->assertSame($this->ortu->id, $this->siswa->fresh()->parent_id);
     }
 
-    public function test_nisn_saat_edit_harus_10_angka_dan_unik(): void
+    public function test_nis_saat_edit_harus_valid_dan_unik(): void
     {
         Sanctum::actingAs($this->guru);
         $url = '/api/students/'.$this->siswa->id;
 
         $this->putJson($url, ['name' => 'Budi', 'nisn' => '12345abcde', 'student_class_id' => $this->kelas4->id])->assertJsonValidationErrors('nisn');
         $this->putJson($url, ['name' => 'Budi', 'nisn' => '2222222222', 'student_class_id' => $this->kelas4->id])->assertJsonValidationErrors('nisn');
-        // NISN miliknya sendiri boleh dipakai lagi
+        // NIS miliknya sendiri boleh dipakai lagi
         $this->putJson($url, ['name' => 'Budi', 'nisn' => '1111111111', 'student_class_id' => $this->kelas4->id])->assertOk();
     }
 

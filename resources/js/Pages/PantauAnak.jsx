@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatDuration, onlyDigits, latestPerQuiz } from '../format';
+import { formatDuration, nisInput, latestPerQuiz } from '../format';
 import axios from 'axios';
 import { Link as LinkIcon, AlertCircle, Loader2, User, FileText, CheckCircle2, XCircle, Clock, BarChart2, TrendingDown, Award } from 'lucide-react';
 import AdminLayout from '../Layouts/AdminLayout';
@@ -51,7 +51,7 @@ export default function PantauAnak() {
             setIsLinking(false);
             fetchLinkedStudent(response.data?.student?.id);
         } catch (err) {
-            setError(err.response?.data?.message || 'Gagal menghubungkan. Pastikan NISN dan nama lengkap benar.');
+            setError(err.response?.data?.message || 'Gagal menghubungkan. Pastikan NIS dan nama lengkap benar.');
             setIsLinking(false);
         }
     };
@@ -66,12 +66,12 @@ export default function PantauAnak() {
             <div className="mb-3">
                 <input
                     type="text"
-                    inputMode="numeric"
+                    inputMode="decimal"
                     pattern="[0-9]*"
                     maxLength={10}
                     value={nisn}
-                    onChange={(e) => setNisn(onlyDigits(e.target.value).slice(0, 10))}
-                    placeholder="Masukkan NISN Anak (angka)"
+                    onChange={(e) => setNisn(nisInput(e.target.value))}
+                    placeholder="NIS Anak, contoh 2324.01.003"
                     required
                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3.5 focus:border-[#1b6d39] focus:ring-0 outline-none font-medium text-gray-700 text-center tracking-widest"
                 />
@@ -87,7 +87,7 @@ export default function PantauAnak() {
                 />
             </div>
             <p className="text-xs text-gray-400 mb-5">
-                💡 Lupa atau tidak tahu NISN? Anda dapat hubungi Wali Kelas.
+                💡 Lupa atau tidak tahu NIS? Anda dapat hubungi Wali Kelas.
             </p>
             <button
                 type="submit"
@@ -137,7 +137,7 @@ export default function PantauAnak() {
                     </div>
                     <h2 className="text-2xl font-black text-gray-900 mb-3">Hubungkan Data Anak</h2>
                     <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                        Anda belum menghubungkan data peserta didik ke akun Anda. Silakan masukkan NISN dan nama lengkap anak Anda untuk melihat laporan nilai.
+                        Anda belum menghubungkan data peserta didik ke akun Anda. Silakan masukkan NIS dan nama lengkap anak Anda untuk melihat laporan nilai.
                     </p>
 
                     {linkForm}
@@ -175,7 +175,7 @@ export default function PantauAnak() {
                         <div className="text-center sm:text-left flex-1">
                             <h2 className="text-2xl font-black text-gray-900 mb-1">{student.name}</h2>
                             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 text-sm font-bold text-gray-500">
-                                <span className="bg-gray-100 px-3 py-1 rounded-lg text-gray-700">NISN: {student.nisn}</span>
+                                <span className="bg-gray-100 px-3 py-1 rounded-lg text-gray-700">NIS: {student.nisn}</span>
                                 <span className="bg-green-50 text-green-700 px-3 py-1 rounded-lg border border-green-100">{student.student_class?.name || 'Tidak ada kelas'}</span>
                             </div>
                         </div>

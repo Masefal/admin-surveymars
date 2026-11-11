@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { BookOpen, Clock, KeyRound, Loader2, PlayCircle, RotateCcw, User } from 'lucide-react';
 import { startRound, verifyErrorMessage } from '../studentRound';
-import { onlyDigits } from '../format';
+import { nisInput } from '../format';
 
 export default function StudentLanding() {
     const { quizId } = useParams();
@@ -33,7 +33,7 @@ export default function StudentLanding() {
 
     const handleStart = async () => {
         if (!selectedStudent || !nisn) {
-            alert('Silakan pilih nama dan isi NISN kamu terlebih dahulu!');
+            alert('Silakan pilih nama dan isi NIS kamu terlebih dahulu!');
             return;
         }
         setVerifying(true);
@@ -118,12 +118,12 @@ export default function StudentLanding() {
                             </div>
                             <div>
                                 <label className="flex items-center gap-2 text-xs sm:text-sm font-bold text-gray-700 mb-2">
-                                    <KeyRound size={16} /> NISN Kamu
+                                    <KeyRound size={16} /> NIS Kamu
                                 </label>
                                 <input
-                                    type="text" inputMode="numeric" pattern="[0-9]*" maxLength={10} autoComplete="off"
-                                    value={nisn} onChange={(e) => setNisn(onlyDigits(e.target.value).slice(0, 10))}
-                                    placeholder="Ketik NISN kamu"
+                                    type="text" inputMode="decimal" maxLength={20} autoComplete="off"
+                                    value={nisn} onChange={(e) => setNisn(nisInput(e.target.value))}
+                                    placeholder="Contoh: 2324.01.003"
                                     className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 sm:py-3.5 focus:border-[#1b6d39] focus:ring-0 outline-none transition-colors bg-white font-medium text-gray-700 text-sm tracking-widest"
                                 />
                             </div>

@@ -4,6 +4,8 @@ import axios from 'axios';
 import { Sparkles, Loader2, BookOpen, Users, FileText, Target, ListOrdered, AlertCircle, RotateCcw, Lock, AlertTriangle, Layers } from 'lucide-react';
 import { PASSING_PERCENT } from '../Components/MaterialPerformance';
 import AdminLayout from '../Layouts/AdminLayout';
+import ClassPicker from '../Components/ClassPicker';
+import { classLevel } from '../format';
 import { ATTEMPT_OPTIONS } from '../attempts';
 
 export default function GenerateQuiz() {
@@ -186,7 +188,7 @@ export default function GenerateQuiz() {
             const response = await axios.post('/api/generate-quiz', {
                 mapel: subject?.name,
                 subject_id: subject?.id,
-                kelas: studentClass?.name,
+                kelas: studentClass ? `Kelas ${classLevel(studentClass)} SD (${studentClass.name})` : undefined,
                 topik: formData.topic,
                 deskripsi: formData.context,
                 jumlah_soal: parseInt(formData.num_questions),
@@ -205,7 +207,7 @@ export default function GenerateQuiz() {
                         deskripsi: formData.context,
                         max_attempts: formData.max_attempts ? parseInt(formData.max_attempts) : null,
                         mapel: subject?.name,
-                        kelas: studentClass?.name,
+                        kelas: studentClass ? `Kelas ${classLevel(studentClass)} SD (${studentClass.name})` : undefined,
                         materials: subjectMaterials.filter(m => formData.material_ids.includes(m.id)).map(m => ({ id: m.id, name: m.name }))
                     },
                     generatedQuestions: response.data
@@ -363,16 +365,12 @@ export default function GenerateQuiz() {
                                 <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2">
                                     <Users size={18} className="text-blue-500" /> Kelas
                                 </label>
-                                <select
-                                    name="class_id"
+                                <ClassPicker
+                                    classes={classes}
                                     value={formData.class_id}
-                                    onChange={handleChange}
+                                    onChange={(id) => handleChange({ target: { name: 'class_id', value: id } })}
                                     required
-                                    className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:border-[#1b6d39] focus:ring-0 outline-none bg-white font-medium text-gray-700"
-                                >
-                                    <option value="">-- Pilih Kelas --</option>
-                                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
+                                />
                             </div>
 
                             <div>

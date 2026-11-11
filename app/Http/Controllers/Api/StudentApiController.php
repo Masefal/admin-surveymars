@@ -252,23 +252,21 @@ class StudentApiController extends Controller
     }
 
     /**
-     * Pastikan siswa terdaftar untuk kuis ini dan NISN-nya cocok.
+     * Pastikan siswa terdaftar untuk kuis ini dan NIS-nya cocok.
      */
     private function resolveStudent(Request $request, Quiz $quiz): Student
     {
         $request->merge(['nisn' => trim((string) $request->nisn)]);
         $request->validate([
             'student_id' => 'required|integer',
-            'nisn' => 'required|regex:/^[0-9]+$/|max:10',
-        ], [
-            'nisn.regex' => 'NISN hanya berisi angka.',
-        ]);
+            'nisn' => Student::NIS_RULE,
+        ], Student::NIS_MESSAGES);
 
         $student = $quiz->eligibleStudents()->whereKey($request->student_id)->first();
 
-        if (! $student || $student->nisn !== trim($request->nisn)) {
+        if (! $student || ! $student->matchesNis($request->nisn)) {
             throw ValidationException::withMessages([
-                'nisn' => ['Nama dan NISN tidak cocok, atau kamu tidak terdaftar untuk kuis ini.'],
+                'nisn' => ['Nama dan NIS tidak cocok, atau kamu tidak terdaftar untuk kuis ini.'],
             ]);
         }
 

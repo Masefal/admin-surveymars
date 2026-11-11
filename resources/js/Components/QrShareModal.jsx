@@ -30,7 +30,7 @@ export default function QrShareModal({ url, title, code, onClose }) {
                     <div className="font-bold text-gray-900 text-sm break-words">{title}</div>
                     {code && <div className="text-xs text-gray-500">Kode kuis: <span className="font-mono font-bold text-gray-800 tracking-widest">{code}</span></div>}
                     <div className="text-[11px] text-gray-400 break-all">{url}</div>
-                    <p className="text-xs text-gray-500">Pindai dengan kamera HP untuk membuka kuis. Siswa tetap memverifikasi nama dan NISN.</p>
+                    <p className="text-xs text-gray-500">Pindai dengan kamera HP untuk membuka kuis. Siswa tetap memverifikasi nama dan NIS.</p>
                     <button onClick={handleDownload} className="w-full bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold py-3 rounded-xl flex justify-center items-center gap-2">
                         <Download size={18} /> Unduh QR (PNG)
                     </button>

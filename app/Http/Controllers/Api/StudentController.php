@@ -41,12 +41,9 @@ class StudentController extends Controller
         $request->merge(['nisn' => trim((string) $request->nisn)]);
         $request->validate([
             'name' => 'required|string|max:255',
-            'nisn' => 'required|digits:10|unique:students,nisn',
+            'nisn' => [...Student::NIS_RULE, $this->uniqueNis()],
             'student_class_id' => 'required|exists:student_classes,id'
-        ], [
-            'nisn.digits' => 'NISN harus berupa 10 angka.',
-            'nisn.unique' => 'NISN ini sudah terdaftar.',
-        ]);
+        ], Student::NIS_MESSAGES);
 
         $student = Student::create([
             'name' => $request->name,
@@ -64,12 +61,9 @@ class StudentController extends Controller
         $request->merge(['nisn' => trim((string) $request->nisn)]);
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'nisn' => 'required|digits:10|unique:students,nisn,'.$student->id,
+            'nisn' => [...Student::NIS_RULE, $this->uniqueNis($student->id)],
             'student_class_id' => 'required|exists:student_classes,id',
-        ], [
-            'nisn.digits' => 'NISN harus berupa 10 angka.',
-            'nisn.unique' => 'NISN ini sudah terdaftar.',
-        ]);
+        ], Student::NIS_MESSAGES);
 
         DB::transaction(function () use ($student, $data) {
             // Kuis personal selalu mengikuti kelas siswanya
@@ -121,21 +115,19 @@ class StudentController extends Controller
     {
         $request->merge(['nisn' => trim((string) $request->nisn)]);
         $request->validate([
-            'nisn' => 'required|regex:/^[0-9]+$/|max:10',
+            'nisn' => Student::NIS_RULE,
             'name' => 'required|string',
-        ], [
-            'nisn.regex' => 'NISN hanya berisi angka.',
-        ]);
+        ], Student::NIS_MESSAGES);
 
-        $student = Student::where('nisn', trim($request->nisn))->first();
+        $student = Student::whereNis($request->nisn)->first();
 
-        // Pesan yang sama untuk NISN salah maupun nama tidak cocok, supaya NISN tidak bisa ditebak
+        // Pesan yang sama untuk NIS salah maupun nama tidak cocok, supaya NIS tidak bisa ditebak
         if (! $student || ! $this->sameName($student->name, $request->name)) {
-            return response()->json(['message' => 'NISN dan nama lengkap anak tidak cocok dengan data sekolah.'], 404);
+            return response()->json(['message' => 'NIS dan nama lengkap anak tidak cocok dengan data sekolah.'], 404);
         }
 
         if ($student->parent_id && (int) $student->parent_id !== (int) $request->user()->id) {
-            return response()->json(['message' => 'NISN ini sudah terhubung dengan akun orang tua lain. Silakan hubungi wali kelas.'], 400);
+            return response()->json(['message' => 'NIS ini sudah terhubung dengan akun orang tua lain. Silakan hubungi wali kelas.'], 400);
         }
 
         $student->parent_id = $request->user()->id;
@@ -168,6 +160,20 @@ class StudentController extends Controller
             'material_performance' => $materials,
             'needs_attention' => MaterialPerformance::weak($materials),
         ]);
+    }
+
+    /** NIS unik walau ditulis dengan/tanpa titik. */
+    private function uniqueNis(?int $ignoreId = null): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($ignoreId) {
+            $exists = Student::whereNis($value)
+                ->when($ignoreId, fn ($q) => $q->whereKeyNot($ignoreId))
+                ->exists();
+
+            if ($exists) {
+                $fail('NIS ini sudah terdaftar.');
+            }
+        };
     }
 
     private function sameName(string $a, string $b): bool

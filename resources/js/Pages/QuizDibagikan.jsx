@@ -103,7 +103,7 @@ export default function QuizDibagikan() {
 
             <div className="mb-6 px-1">
                 <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-1">Bagikan link ke siswa</h3>
-                <p className="text-gray-500 font-medium text-xs sm:text-sm">Siswa tidak perlu membuat akun. Cukup buka link, pilih nama, isi NISN, lalu mulai mengerjakan.</p>
+                <p className="text-gray-500 font-medium text-xs sm:text-sm">Siswa tidak perlu membuat akun. Cukup buka link, pilih nama, isi NIS, lalu mulai mengerjakan.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">

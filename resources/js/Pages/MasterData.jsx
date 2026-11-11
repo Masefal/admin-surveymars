@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import AdminLayout from '../Layouts/AdminLayout';
 import { Book, Users, Trash2, Plus, Loader2 } from 'lucide-react';
+import { LEVELS, ROMBELS, classLevel } from '../format';
 
 export default function MasterData() {
     const [subjects, setSubjects] = useState([]);
@@ -9,7 +10,7 @@ export default function MasterData() {
     const [loading, setLoading] = useState(true);
 
     const [newSubject, setNewSubject] = useState('');
-    const [newClass, setNewClass] = useState('');
+    const [newClass, setNewClass] = useState({ level: '', rombel: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -55,11 +56,11 @@ export default function MasterData() {
 
     const handleAddClass = async (e) => {
         e.preventDefault();
-        if (!newClass.trim()) return;
+        if (!newClass.level || !newClass.rombel) return;
         setIsSubmitting(true);
         try {
-            await axios.post('/api/master-data/classes', { name: newClass });
-            setNewClass('');
+            await axios.post('/api/master-data/classes', newClass);
+            setNewClass(c => ({ ...c, rombel: '' }));
             fetchData();
         } catch (error) {
             alert(error.response?.data?.message || 'Gagal menambahkan kelas');
@@ -74,9 +75,15 @@ export default function MasterData() {
             await axios.delete(`/api/master-data/classes/${id}`);
             fetchData();
         } catch (error) {
-            alert('Gagal menghapus data');
+            alert(error.response?.data?.message || 'Gagal menghapus data');
         }
     };
+
+    const classesByLevel = LEVELS
+        .map(level => ({ level, items: classes.filter(c => classLevel(c) === level) }))
+        .filter(g => g.items.length > 0);
+    const otherClasses = classes.filter(c => !LEVELS.includes(classLevel(c)));
+    const selectCls = 'bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39] text-xs sm:text-sm font-medium';
 
     return (
         <AdminLayout>
@@ -135,25 +142,33 @@ export default function MasterData() {
                         </div>
 
                         <form onSubmit={handleAddClass} className="flex flex-col sm:flex-row gap-2 mb-6">
-                            <input 
-                                type="text" 
-                                value={newClass}
-                                onChange={(e) => setNewClass(e.target.value)}
-                                placeholder="Tambah Kelas Baru..." 
-                                className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:border-[#1b6d39] focus:outline-none focus:ring-1 focus:ring-[#1b6d39] text-xs sm:text-sm font-medium"
-                            />
+                            <select aria-label="Level" required value={newClass.level} onChange={(e) => setNewClass(c => ({ ...c, level: e.target.value }))} className={`flex-1 ${selectCls}`}>
+                                <option value="">-- Level --</option>
+                                {LEVELS.map(l => <option key={l} value={l}>Level {l}</option>)}
+                            </select>
+                            <select aria-label="Rombel" required value={newClass.rombel} onChange={(e) => setNewClass(c => ({ ...c, rombel: e.target.value }))} className={`flex-1 ${selectCls}`}>
+                                <option value="">-- Rombel --</option>
+                                {ROMBELS.map(r => <option key={r} value={r}>{r}</option>)}
+                            </select>
                             <button disabled={isSubmitting} type="submit" className="bg-[#F2994A] hover:bg-[#e0893d] text-white px-5 py-2.5 rounded-xl flex items-center justify-center gap-1.5 font-semibold transition-colors text-xs sm:text-sm shrink-0">
                                 <Plus size={18} /> Tambah
                             </button>
                         </form>
 
-                        <div className="space-y-2 max-h-96 overflow-y-auto pr-1">
-                            {classes.map(cls => (
-                                <div key={cls.id} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-xl border border-gray-100 transition-colors">
-                                    <span className="font-bold text-gray-700 text-xs sm:text-sm">{cls.name}</span>
-                                    <button onClick={() => handleDeleteClass(cls.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-50">
-                                        <Trash2 size={16} />
-                                    </button>
+                        <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+                            {[...classesByLevel, ...(otherClasses.length ? [{ level: null, items: otherClasses }] : [])].map(group => (
+                                <div key={group.level ?? 'lain'}>
+                                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">{group.level ? `Level ${group.level}` : 'Lainnya'}</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {group.items.map(cls => (
+                                            <div key={cls.id} className="flex items-center gap-1 pl-3 pr-1 py-1 rounded-xl border border-gray-100 hover:bg-gray-50">
+                                                <span className="font-bold text-gray-700 text-xs sm:text-sm">{cls.name}</span>
+                                                <button onClick={() => handleDeleteClass(cls.id)} aria-label={`Hapus kelas ${cls.name}`} className="text-gray-400 hover:text-red-500 transition-colors p-1.5 rounded-lg hover:bg-red-50">
+                                                    <Trash2 size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             ))}
                             {classes.length === 0 && <div className="text-center text-gray-400 py-6 text-sm font-medium">Belum ada data</div>}

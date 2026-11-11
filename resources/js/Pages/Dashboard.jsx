@@ -108,7 +108,7 @@ export default function Dashboard() {
                             <AlertCircle size={32} />
                         </div>
                         <h2 className="text-xl font-bold text-gray-900 mb-2">Data Anak Belum Terhubung</h2>
-                        <p className="text-gray-500 text-sm mb-6">Hubungkan akun Anda dengan NISN anak untuk mulai memantau nilai dan membuat kuis personalisasi.</p>
+                        <p className="text-gray-500 text-sm mb-6">Hubungkan akun Anda dengan NIS anak untuk mulai memantau nilai dan membuat kuis personalisasi.</p>
                         <button 
                             onClick={() => navigate('/pantau-anak')}
                             className="bg-[#1b6d39] hover:bg-[#14532b] text-white font-bold px-6 py-3 rounded-xl transition-colors text-sm shadow-sm"
@@ -148,7 +148,7 @@ export default function Dashboard() {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 sm:mb-8">
                             <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
                                 <h3 className="text-lg font-bold text-gray-900 mb-1">Kuis yang belum dikerjakan</h3>
-                                <p className="text-xs text-gray-500 mb-4">Buka link-nya di perangkat anak. Anak akan diminta memilih nama dan mengisi NISN.</p>
+                                <p className="text-xs text-gray-500 mb-4">Buka link-nya di perangkat anak. Anak akan diminta memilih nama dan mengisi NIS.</p>
                                 <div className="space-y-3">
                                     {pendingQuizzes.map(quiz => (
                                         <div key={quiz.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50/50">

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Material;
+use App\Models\Quiz;
+use App\Models\Student;
 use App\Models\Subject;
 use App\Models\StudentClass;
 use Illuminate\Http\Request;
@@ -15,7 +17,7 @@ class MasterDataController extends Controller
     {
         return response()->json([
             'subjects' => Subject::orderBy('name')->get(),
-            'classes' => StudentClass::orderBy('name')->get(),
+            'classes' => StudentClass::orderBy('level')->orderBy('name')->get(),
             'materials' => Material::orderBy('subject_id')->orderBy('id')->get(['id', 'subject_id', 'name', 'description']),
         ]);
     }
@@ -41,20 +43,35 @@ class MasterDataController extends Controller
 
     public function storeClass(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|unique:student_classes,name|max:255'
+        // Kelas = level (1-6) + rombel (A, B, C, ...), contoh "4C"
+        $data = $request->validate([
+            'level' => 'required|integer|between:1,6',
+            'rombel' => ['required', 'string', 'regex:/^[A-Za-z]$/'],
+        ], [
+            'rombel.regex' => 'Rombel berupa satu huruf, contoh A atau C.',
         ]);
 
-        $studentClass = StudentClass::create([
-            'name' => $request->name
-        ]);
+        $name = $data['level'].strtoupper($data['rombel']);
+
+        if (StudentClass::where('name', $name)->exists()) {
+            return response()->json(['message' => "Kelas {$name} sudah ada."], 422);
+        }
+
+        $studentClass = StudentClass::create(['name' => $name, 'level' => (string) $data['level']]);
 
         return response()->json($studentClass, 201);
     }
 
     public function destroyClass($id)
     {
-        StudentClass::destroy($id);
+        $studentClass = StudentClass::findOrFail($id);
+
+        // Menghapus kelas ikut menghapus siswa & kuisnya (cascade), jadi hanya kelas kosong yang boleh dihapus
+        if (Student::where('student_class_id', $id)->exists() || Quiz::where('student_class_id', $id)->exists()) {
+            return response()->json(['message' => "Kelas {$studentClass->name} masih punya siswa atau kuis, jadi tidak bisa dihapus."], 422);
+        }
+
+        $studentClass->delete();
         return response()->json(['message' => 'Kelas berhasil dihapus']);
     }
 

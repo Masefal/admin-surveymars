@@ -9,7 +9,7 @@ export const formatDuration = (seconds) => {
     return `${minutes} mnt ${rest} dtk`;
 };
 
-// Buang semua karakter selain angka (dipakai untuk input NISN)
+// Buang semua karakter selain angka
 export const onlyDigits = (value) => String(value ?? '').replace(/\D/g, '');
 
 // Satu kuis bisa dikerjakan beberapa ronde; untuk rata-rata dan jumlah kuis
@@ -26,3 +26,11 @@ export const latestPerQuiz = (results = []) => {
         });
     return [...byQuiz.values()];
 };
+
+// Input NIS sekolah: hanya angka dan titik (contoh 2324.01.003)
+export const nisInput = (value) => String(value ?? '').replace(/[^0-9.]/g, '').slice(0, 20);
+
+// Kelas = level (1-6) + rombel (A-I), contoh "4C"
+export const LEVELS = ['1', '2', '3', '4', '5', '6'];
+export const ROMBELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+export const classLevel = (cls) => String(cls?.level || String(cls?.name ?? '').match(/\d/)?.[0] || '');

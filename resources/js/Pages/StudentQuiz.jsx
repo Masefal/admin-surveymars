@@ -73,7 +73,7 @@ export default function StudentQuiz() {
                     totalQuestions: response.data.total_questions,
                     remainingWrong: response.data.remaining_wrong,
                     canRetry: response.data.can_retry,
-                    // Untuk tombol "ulangi soal yang salah" tanpa mengetik NISN lagi
+                    // Untuk tombol "ulangi soal yang salah" tanpa mengetik NIS lagi
                     student: { id: studentId, nisn },
                     baseQuiz: quiz,
                 },
